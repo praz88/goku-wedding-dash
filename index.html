@@ -8,24 +8,32 @@
 <style>
   :root { --gold:#f5c542; --blood:#c1121f; --cream:#fff3d6; --kn:'Noto Sans Kannada','Baloo 2',sans-serif; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  html,body { height:100%; background:#050308; color:var(--cream); font-family:'Baloo 2',var(--kn),system-ui,sans-serif; overflow:hidden; touch-action:none; }
+  html,body { height:100%; background:#050308; color:var(--cream); font-family:'Baloo 2',var(--kn),system-ui,sans-serif; overflow:hidden; touch-action:none; -webkit-user-select:none; user-select:none; }
   #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
   canvas { max-width:100%; max-height:100%; display:block; background:#0b0612; }
-  .overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:22px; background:radial-gradient(ellipse at center, rgba(40,0,20,.92), rgba(0,0,0,.97)); }
+  .overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px; background:radial-gradient(ellipse at center, rgba(40,0,20,.93), rgba(0,0,0,.98)); overflow-y:auto; }
   .overlay.hidden { display:none; }
-  h1 { font-family:'Creepster',cursive; font-size:clamp(34px,9vw,64px); color:var(--blood); line-height:1; letter-spacing:1px; text-shadow:0 0 18px #ff2a3a, 0 4px 0 #3a0008; }
+  h1 { font-family:'Creepster',cursive; font-size:clamp(32px,9vw,60px); color:var(--blood); line-height:1; letter-spacing:1px; text-shadow:0 0 18px #ff2a3a, 0 4px 0 #3a0008; }
   h1 small { display:block; font-family:'Baloo 2'; font-size:.38em; color:var(--gold); letter-spacing:3px; text-shadow:none; margin-top:6px; }
-  h2 { font-family:'Creepster',cursive; font-size:clamp(26px,7vw,44px); color:var(--gold); text-shadow:0 0 14px #ffb300; }
-  p { font-size:clamp(14px,3.6vw,17px); margin:8px 0; max-width:440px; line-height:1.35; }
+  h2 { font-family:'Creepster',cursive; font-size:clamp(24px,7vw,42px); color:var(--gold); text-shadow:0 0 14px #ffb300; }
+  h3 { color:var(--gold); font-size:15px; letter-spacing:2px; margin:10px 0 4px; }
+  p { font-size:clamp(13px,3.5vw,16px); margin:7px 0; max-width:440px; line-height:1.35; }
   .kn { font-family:var(--kn); }
-  .pill { display:inline-flex; align-items:center; gap:6px; background:#1b0a1e; border:1px solid #5a1a3a; border-radius:999px; padding:6px 12px; margin:4px; font-size:13px; cursor:pointer; }
+  .pill { display:inline-flex; align-items:center; gap:6px; background:#1b0a1e; border:1px solid #5a1a3a; border-radius:999px; padding:6px 12px; margin:3px; font-size:13px; cursor:pointer; }
   .pill input { accent-color:var(--blood); }
-  button { margin-top:16px; font-family:inherit; font-weight:800; font-size:20px; padding:12px 30px; border:0; border-radius:14px; background:var(--blood); color:#fff; cursor:pointer; box-shadow:0 5px 0 #5a0008, 0 0 24px rgba(255,0,40,.35); }
+  button { margin-top:12px; font-family:inherit; font-weight:800; font-size:19px; padding:11px 28px; border:0; border-radius:14px; background:var(--blood); color:#fff; cursor:pointer; box-shadow:0 5px 0 #5a0008, 0 0 24px rgba(255,0,40,.35); }
   button:active { transform:translateY(3px); box-shadow:0 2px 0 #5a0008; }
   .small { font-size:12px; opacity:.7; }
   .lvl { font-family:'Creepster'; color:#9be7ff; font-size:14px; letter-spacing:4px; }
   #flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; }
   #blood { position:absolute; inset:0; pointer-events:none; opacity:0; box-shadow: inset 0 0 120px 40px rgba(193,18,31,.9); transition:opacity .15s; }
+  .roster { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; width:100%; max-width:440px; margin-top:6px; }
+  .char { background:#140816; border:2px solid #3a1030; border-radius:12px; padding:6px 2px; cursor:pointer; font-size:11px; line-height:1.15; }
+  .char .e { font-size:30px; display:block; }
+  .char b { display:block; color:var(--gold); font-size:12px; }
+  .char.sel { border-color:var(--blood); background:#2a0a14; box-shadow:0 0 14px rgba(255,0,40,.5); }
+  #perk { min-height:34px; color:#9be7ff; font-size:13px; }
+  .hs { color:#9be7ff; font-size:13px; }
 </style>
 </head>
 <body>
@@ -37,13 +45,16 @@
   <div id="start" class="overlay">
     <h1>Weekend Nightmare<small>GOKU'S WEDDING DASH</small></h1>
     <p>Goku is a bank manager. Goku is getting married on Sunday. Goku's phone has never heard of Sunday.</p>
-    <p>Three nights. Three floors of the haunted branch. One muhurtha. Survive the calls, reach the mantapa.</p>
+    <h3>PICK YOUR RUNNER</h3>
+    <div class="roster" id="roster"></div>
+    <p id="perk"></p>
     <div>
       <label class="pill"><input type="checkbox" id="kn"> <span class="kn">ಕನ್ನಡ</span> calls</label>
       <label class="pill"><input type="checkbox" id="snd" checked> 🔊 Sound</label>
       <label class="pill"><input type="checkbox" id="voice" checked> 🗣️ Voice</label>
     </div>
-    <p class="small">Tap left/right half or use ← → to switch lanes. Open source — contribute levels!</p>
+    <p class="small">Swipe ← → to change lane · swipe ↑ jump · swipe ↓ duck (or arrow keys)</p>
+    <p class="hs" id="hs"></p>
     <button id="play">Enter the Branch</button>
   </div>
 
@@ -59,7 +70,9 @@
     <h2 id="overTitle"></h2>
     <p id="overMsg"></p>
     <p id="overScore"></p>
-    <button id="again">Try Again</button>
+    <p class="hs" id="overHs"></p>
+    <button id="again">Run Again</button>
+    <button id="menu" style="background:#3a1030;box-shadow:0 5px 0 #1a0010">Change Runner</button>
   </div>
 </div>
 
@@ -71,220 +84,200 @@
   const opt = { kn:false, snd:true, voice:true };
   ['kn','snd','voice'].forEach(k => $(k).onchange = e => opt[k] = e.target.checked);
 
-  // ---------- CONTENT ----------
+  // ---------- CAST ----------
+  // Playable wedding party. All invented. Add yours!
+  const CHARS = [
+    { id:'goku', e:'🤵🏽', name:'Goku', role:'The Groom', perk:'Balanced. +10% score. Has not slept since Thursday.', lives:3, speed:1, scoreX:1.1 },
+    { id:'amma', e:'👩🏽', name:'Amma', role:'Mother of Groom', perk:'4 lives. Every sweet you grab, she asks if you ate.', lives:4, speed:1, scoreX:1, sweetX:1 },
+    { id:'appa', e:'👨🏽‍🦳', name:'Appa', role:'Father of Groom', perk:'Hard of hearing: ignores the first 2 calls each level.', lives:3, speed:0.95, scoreX:1, ignore:2 },
+    { id:'purohit', e:'🧙🏽', name:'Shastri', role:'The Purohit', perk:'Time runs 12% slower. He has done 4,000 weddings.', lives:3, speed:0.88, scoreX:1 },
+    { id:'kitty', e:'🕺🏽', name:'Kitty', role:'Best Friend', perk:'Fast & reckless: 15% faster, 1.5× score, 2 lives.', lives:2, speed:1.15, scoreX:1.5 },
+    { id:'chikkamma', e:'👵🏽', name:'Chikkamma', role:'The Aunt', perk:'Sweets worth 2×. Asks every zombie "when is YOUR marriage?"', lives:3, speed:1, scoreX:1, sweetX:2 },
+    { id:'ranga', e:'🧑🏽‍🔧', name:'Ranga', role:'Bank Peon', perk:'Do Not Disturb lasts 9s. He knows where the fuse box is.', lives:3, speed:1, scoreX:1, dnd:9 },
+    { id:'anna', e:'🛺', name:'Auto Anna', role:'The Driver', perk:'Zombies and ghost autos can\'t hurt him. Meter is extra.', lives:3, speed:1.05, scoreX:1, noEnemy:true },
+  ];
+  // Callers. who / en / kn. Add yours!
   const CALLS = [
     { who:'Branch Manager', en:'"Goku, come Saturday. Audit."', kn:'"ಗೋಕು, ಶನಿವಾರ ಬ್ರಾಂಚ್‌ಗೆ ಬಾ. ಆಡಿಟ್ ಇದೆ."' },
-    { who:'Customer', en:'"Sir my ATM card is stuck, pls help."', kn:'"ಸರ್, ATM ಕಾರ್ಡ್ ಸಿಕ್ಕಾಕೊಂಡಿದೆ ಸರ್."' },
-    { who:'Regional Office', en:'"MIS report by tonight. Tonight."', kn:'"MIS ರಿಪೋರ್ಟ್ ಇವತ್ತೇ ಬೇಕು. ಇವತ್ತೇ."' },
-    { who:'Customer', en:'"Sir are you open on Sunday?"', kn:'"ಸರ್, ಭಾನುವಾರ ಬ್ರಾಂಚ್ ಓಪನ್ ಇದ್ಯಾ?"' },
     { who:'Branch Manager', en:'"Target review at 9 AM tomorrow."', kn:'"ಟಾರ್ಗೆಟ್ ರಿವ್ಯೂ ನಾಳೆ ಬೆಳಿಗ್ಗೆ 9ಕ್ಕೆ."' },
-    { who:'Customer', en:'"Home loan status? Sir? SIR??"', kn:'"ಹೋಮ್ ಲೋನ್ ಸ್ಟೇಟಸ್ ಸರ್? ಸರ್? ಸರ್??"' },
-    { who:'Unknown Number', en:'"Hello sir, net banking not working."', kn:'"ಹಲೋ ಸರ್, ನೆಟ್ ಬ್ಯಾಂಕಿಂಗ್ ವರ್ಕ್ ಆಗ್ತಿಲ್ಲ."' },
     { who:'Branch Manager', en:'"2 hours only. Promise. Bring laptop."', kn:'"ಎರಡು ಗಂಟೆ ಮಾತ್ರ. ಪ್ರಾಮಿಸ್. ಲ್ಯಾಪ್‌ಟಾಪ್ ತಗೊಂಡ್ ಬಾ."' },
-    { who:'Customer', en:'"Sir KYC pending it is showing."', kn:'"ಸರ್, KYC ಪೆಂಡಿಂಗ್ ಅಂತ ತೋರಿಸ್ತಿದೆ."' },
     { who:'Branch Manager', en:'"Wedding? Which wedding? MIS first."', kn:'"ಮದುವೆ? ಯಾವ ಮದುವೆ? ಮೊದ್ಲು MIS."' },
+    { who:'Regional Office', en:'"MIS report by tonight. Tonight."', kn:'"MIS ರಿಪೋರ್ಟ್ ಇವತ್ತೇ ಬೇಕು. ಇವತ್ತೇ."' },
+    { who:'Zonal Head', en:'"Why is your branch 3rd in CASA?"', kn:'"ನಿಮ್ಮ ಬ್ರಾಂಚ್ CASAದಲ್ಲಿ ಯಾಕೆ 3ನೇ?"' },
+    { who:'Customer', en:'"Sir, teller is saying ask manager."', kn:'"ಸರ್, ಟೆಲ್ಲರ್ ಮ್ಯಾನೇಜರ್ ಕೇಳಿ ಅಂತಿದ್ದಾರೆ."' },
+    { who:'NPA Account', en:'"Sir EMI next month pakka. Don\'t come home."', kn:'"ಸರ್ EMI ಮುಂದಿನ ತಿಂಗಳು ಪಕ್ಕಾ. ಮನೆಗೆ ಬರ್ಬೇಡಿ."' },
+    { who:'Big Depositor', en:'"Manager saab, FD rate 0.5% more or I go."', kn:'"ಮ್ಯಾನೇಜರ್ ಸಾಬ್, FD ರೇಟ್ 0.5% ಜಾಸ್ತಿ ಇಲ್ಲ ಅಂದ್ರೆ ಹೋಗ್ತೀನಿ."' },
+    { who:'Staff', en:'"Sir cashier absent. Cash counter open?"', kn:'"ಸರ್ ಕ್ಯಾಷಿಯರ್ ಬಂದಿಲ್ಲ. ಕೌಂಟರ್ ಓಪನ್ ಮಾಡ್ಲಾ?"' },
+    { who:'Customer', en:'"Sir are you open on Sunday?"', kn:'"ಸರ್, ಭಾನುವಾರ ಬ್ರಾಂಚ್ ಓಪನ್ ಇದ್ಯಾ?"' },
+    { who:'Customer', en:'"Home loan status? Sir? SIR??"', kn:'"ಹೋಮ್ ಲೋನ್ ಸ್ಟೇಟಸ್ ಸರ್? ಸರ್? ಸರ್??"' },
+    { who:'Customer', en:'"Sir loan sanction letter, today itself."', kn:'"ಸರ್ ಲೋನ್ ಸ್ಯಾಂಕ್ಷನ್ ಲೆಟರ್, ಇವತ್ತೇ."' },
+    { who:'Pension Uncle', en:'"Beta, life certificate, I am alive."', kn:'"ಮಗನೇ, ಲೈಫ್ ಸರ್ಟಿಫಿಕೇಟ್, ನಾನು ಬದುಕಿದ್ದೀನಿ."' },
+    { who:'Locker Aunty', en:'"Need locker NOW. Function is today."', kn:'"ಲಾಕರ್ ಈಗ್ಲೇ ಬೇಕು. ಇವತ್ತು ಫಂಕ್ಷನ್."' },
+    { who:'Unknown Number', en:'"Hello sir, net banking not working."', kn:'"ಹಲೋ ಸರ್, ನೆಟ್ ಬ್ಯಾಂಕಿಂಗ್ ವರ್ಕ್ ಆಗ್ತಿಲ್ಲ."' },
+    { who:'Insurance Partner', en:'"Sir cross-sell target. Just 2 policies."', kn:'"ಸರ್ ಕ್ರಾಸ್-ಸೆಲ್ ಟಾರ್ಗೆಟ್. ಎರಡೇ ಪಾಲಿಸಿ."' },
+    { who:'HR', en:'"Leave not approved. System issue."', kn:'"ರಜೆ ಅಪ್ರೂವ್ ಆಗಿಲ್ಲ. ಸಿಸ್ಟಮ್ ಇಶ್ಯೂ."' },
+    { who:'Auditor', en:'"Found a 3 rupee mismatch from 2019."', kn:'"2019ರ 3 ರೂಪಾಯಿ ಮಿಸ್‌ಮ್ಯಾಚ್ ಸಿಕ್ತು."' },
+    { who:'Relative', en:'"Groom is late? Bank people, typical."', kn:'"ವರ ಲೇಟಾ? ಬ್ಯಾಂಕ್ ಜನ, ಟಿಪಿಕಲ್."' },
+    { who:'Photographer', en:'"Sir one candid. Sir. Look sad. Perfect."', kn:'"ಸರ್ ಒಂದು ಕ್ಯಾಂಡಿಡ್. ದುಃಖ ಮುಖ ಮಾಡಿ. ಪರ್ಫೆಕ್ಟ್."' },
   ];
   const LEVELS = [
     { tag:'NIGHT 1 · GROUND FLOOR', title:'The Branch After Hours',
-      story:'Friday 11:58 PM. The shutters are down but the token display still blinks. Customers who never left the queue shuffle between the counters, muttering "sir… sir…". The ATM is bleeding receipts.',
-      hint:'Zombie customers block lanes. Grab 🍬 Mysore pak and 📿 thaali pieces. 🧘 = Do Not Disturb (5s).',
-      sky:['#0b0612','#1a0a24','#2a0f1f'], fog:'rgba(120,140,160,.08)', speed:250, dur:35, enemies:['🧟','🧟‍♀️'], enemyRate:0.42, callRate:0.35, boss:null },
+      story:'Friday 11:58 PM. The shutters are down but the cabin AC still hums. Customers who never left the manager\'s cabin shuffle the corridor holding loan files, muttering "sir… sir… one signature". The NPA register is bleeding red ink.',
+      hint:'Jump over 🗄️ file cabinets. Duck under 🪭 the possessed ceiling fan. Zombie customers want "just one signature".',
+      sky:['#0b0612','#1a0a24','#2a0f1f'], fog:'rgba(120,140,160,.08)', speed:250, dur:35,
+      enemies:['🧟','🧟‍♀️','🧛🏽'], low:['🗄️','📦','🪑'], high:['🪭','🕸️','🎏'], enemyRate:0.30, callRate:0.30, obsRate:0.22, boss:null, moon:'#e8e6d0' },
     { tag:'NIGHT 2 · SILK BOARD', title:'The Phone That Won\'t Die',
-      story:'Saturday 2 AM. Goku flees the branch into Bengaluru. Every streetlight flickers. Every auto driver is on a call — with HIS manager. The phone rings even when switched off. Silk Board has no signal. Silk Board does not need signal.',
-      hint:'Possessed phones fly faster. 🛺 ghost autos drift lanes. Thunder = brace.',
-      sky:['#020409','#07131f','#101a2a'], fog:'rgba(80,120,200,.10)', speed:300, dur:40, enemies:['🛺','👻','🧟'], enemyRate:0.38, callRate:0.45, boss:null },
+      story:'Saturday 2 AM. Goku flees into Bengaluru. Every streetlight flickers. Every auto driver is on a call — with HIS manager. Silk Board has no signal. Silk Board does not need signal.',
+      hint:'🛺 ghost autos drift lanes. Jump 🐄 and 🚧. Duck under 🚏 signboards. Thunder = brace.',
+      sky:['#020409','#07131f','#101a2a'], fog:'rgba(80,120,200,.10)', speed:300, dur:40,
+      enemies:['🛺','👻','🧟','🐕‍🦺'], low:['🐄','🚧','🕳️'], high:['🚏','🌉','🦇'], enemyRate:0.28, callRate:0.38, obsRate:0.24, boss:null, moon:'#9be7ff' },
     { tag:'NIGHT 3 · THE MANTAPA', title:'Muhurtha of the Damned',
       story:'Sunday 6:30 AM. Jasmine, nadaswara, 400 relatives. And above the mantapa, floating, forty feet tall — the Branch Manager. "Goku. One small thing. Before the thaali." The purohit is checking his watch.',
-      hint:'BOSS: the Manager hurls calls two lanes at a time. Survive till muhurtha. Tie the thaali.',
-      sky:['#1a0404','#3a0a0a','#5c1a00'], fog:'rgba(255,120,40,.10)', speed:340, dur:45, enemies:['🧟','👹'], enemyRate:0.30, callRate:0.55, boss:true },
+      hint:'BOSS: the Manager hurls calls two lanes at a time. Jump the 🥁 drums, duck the 🌺 garland arches. Tie the thaali.',
+      sky:['#1a0404','#3a0a0a','#5c1a00'], fog:'rgba(255,120,40,.10)', speed:340, dur:45,
+      enemies:['🧟','👹','🧌'], low:['🥁','🪔','🍽️'], high:['🌺','🎊','🪭'], enemyRate:0.22, callRate:0.45, obsRate:0.22, boss:true, moon:'#ff5a1f' },
   ];
-  const SWEETS = ['🍬','🪔','🌸','🥥','🍌','🪷','🍛'];
+  const SWEETS = ['🍬','🪔','🌸','🥥','🍌','🪷','🍛','🧁'];
 
-  // ---------- AUDIO (synth, no files) ----------
-  let AC = null;
-  function audio() { if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} } if (AC && AC.state==='suspended') AC.resume().catch(()=>{}); return AC; }
-  function tone(f, t, type='sine', vol=0.2, slide=0) {
-    if (!opt.snd) return; const ac = audio(); if (!ac) return;
-    const o = ac.createOscillator(), g = ac.createGain();
-    o.type = type; o.frequency.setValueAtTime(f, ac.currentTime);
-    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20,f+slide), ac.currentTime+t);
-    g.gain.setValueAtTime(vol, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+t);
-    o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+t);
-  }
-  function noise(t, vol=0.3) {
-    if (!opt.snd) return; const ac = audio(); if (!ac) return;
-    const b = ac.createBuffer(1, ac.sampleRate*t, ac.sampleRate), d = b.getChannelData(0);
-    for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1-i/d.length);
-    const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
-    f.type='lowpass'; f.frequency.value = 400; s.buffer=b; g.gain.value=vol;
-    s.connect(f).connect(g).connect(ac.destination); s.start();
-  }
-  const sfx = {
-    ring: () => { [0,0.18,0.36].forEach((d,i)=>setTimeout(()=>{tone(880,0.12,'square',0.08); tone(1175,0.12,'square',0.06);}, d*1000)); },
-    hit:  () => { tone(110,0.5,'sawtooth',0.35,-80); noise(0.4,0.4); },
-    pick: () => { tone(660,0.08,'triangle',0.15); setTimeout(()=>tone(990,0.1,'triangle',0.15),70); },
-    thaali:()=> { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.25,'triangle',0.18),i*90)); },
-    shield:()=> { tone(220,0.6,'sine',0.2,440); },
-    thunder:()=> { noise(1.6,0.6); tone(45,1.4,'sine',0.4); },
-    heart: () => { tone(60,0.12,'sine',0.5); setTimeout(()=>tone(55,0.14,'sine',0.45),160); },
-    laugh: () => { [300,250,200,170].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'sawtooth',0.15,-40),i*140)); },
-    win:   () => { [392,523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.4,'triangle',0.2),i*120)); },
+  // ---------- AUDIO ----------
+  let AC=null;
+  function audio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==='suspended') AC.resume().catch(()=>{}); return AC; }
+  function tone(f,t,type='sine',vol=0.2,slide=0){ if(!opt.snd) return; const ac=audio(); if(!ac) return; const o=ac.createOscillator(),g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f,ac.currentTime); if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(20,f+slide),ac.currentTime+t); g.gain.setValueAtTime(vol,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+t); }
+  function noise(t,vol=0.3){ if(!opt.snd) return; const ac=audio(); if(!ac) return; const b=ac.createBuffer(1,ac.sampleRate*t,ac.sampleRate),d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=400; s.buffer=b; g.gain.value=vol; s.connect(f).connect(g).connect(ac.destination); s.start(); }
+  const sfx={
+    ring:()=>{[0,0.18,0.36].forEach(d=>setTimeout(()=>{tone(880,0.12,'square',0.08);tone(1175,0.12,'square',0.06);},d*1000));},
+    hit:()=>{tone(110,0.5,'sawtooth',0.35,-80);noise(0.4,0.4);},
+    pick:()=>{tone(660,0.08,'triangle',0.15);setTimeout(()=>tone(990,0.1,'triangle',0.15),70);},
+    thaali:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.25,'triangle',0.18),i*90));},
+    shield:()=>{tone(220,0.6,'sine',0.2,440);},
+    jump:()=>{tone(300,0.15,'square',0.08,200);},
+    duck:()=>{tone(200,0.12,'square',0.08,-100);},
+    thunder:()=>{noise(1.6,0.6);tone(45,1.4,'sine',0.4);},
+    heart:()=>{tone(60,0.12,'sine',0.5);setTimeout(()=>tone(55,0.14,'sine',0.45),160);},
+    laugh:()=>{[300,250,200,170].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'sawtooth',0.15,-40),i*140));},
+    win:()=>{[392,523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.4,'triangle',0.2),i*120));},
   };
-  // drone: low ambient hum that gets scarier per level
-  let drone = null;
-  function startDrone(level) {
-    stopDrone(); if (!opt.snd) return; const ac = audio(); if (!ac) return;
-    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain();
-    o.type='sawtooth'; o.frequency.value = 38 + level*6; o2.type='sine'; o2.frequency.value = 38.7 + level*6;
-    g.gain.value = 0.045 + level*0.015;
-    const f = ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=160;
-    o.connect(f); o2.connect(f); f.connect(g).connect(ac.destination); o.start(); o2.start();
-    drone = { o, o2, g };
-  }
-  function stopDrone() { if (drone) { try { drone.o.stop(); drone.o2.stop(); } catch(e){} drone=null; } }
+  let drone=null;
+  function startDrone(level){ stopDrone(); if(!opt.snd) return; const ac=audio(); if(!ac) return; const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter(); o.type='sawtooth'; o.frequency.value=38+level*6; o2.type='sine'; o2.frequency.value=38.7+level*6; g.gain.value=0.045+level*0.015; f.type='lowpass'; f.frequency.value=160; o.connect(f); o2.connect(f); f.connect(g).connect(ac.destination); o.start(); o2.start(); drone={o,o2}; }
+  function stopDrone(){ if(drone){ try{drone.o.stop();drone.o2.stop();}catch(e){} drone=null; } }
+  function say(text,lang){ if(!opt.voice||!('speechSynthesis' in window)) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text.replace(/"/g,'')); u.lang=lang; u.rate=1.05; u.pitch=lang.startsWith('kn')?0.9:0.7; const v=speechSynthesis.getVoices().find(v=>v.lang.replace('_','-').toLowerCase().startsWith(lang.toLowerCase().slice(0,2))); if(v) u.voice=v; speechSynthesis.speak(u);}catch(e){} }
 
-  // ---------- VOICE ----------
-  function say(text, lang) {
-    if (!opt.voice || !('speechSynthesis' in window)) return;
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text.replace(/"/g,''));
-      u.lang = lang; u.rate = 1.05; u.pitch = lang.startsWith('kn') ? 0.9 : 0.7;
-      const v = speechSynthesis.getVoices().find(v => v.lang.replace('_','-').toLowerCase().startsWith(lang.toLowerCase().slice(0,2)));
-      if (v) u.voice = v;
-      speechSynthesis.speak(u);
-    } catch(e){}
-  }
+  // ---------- HIGH SCORE ----------
+  function getHS(){ try{ return JSON.parse(localStorage.getItem('gwd_hs')||'{}'); }catch(e){ return {}; } }
+  function setHS(id,s){ try{ const h=getHS(); if(!h[id]||s>h[id]){ h[id]=s; localStorage.setItem('gwd_hs',JSON.stringify(h)); return true; } }catch(e){} return false; }
+  function hsText(){ const h=getHS(); const best=Object.entries(h).sort((a,b)=>b[1]-a[1])[0]; return best? 'Best: '+best[1]+' ('+CHARS.find(c=>c.id===best[0]).name+')' : ''; }
+
+  // ---------- ROSTER UI ----------
+  let CH = CHARS[0];
+  const roster=$('roster');
+  CHARS.forEach(c=>{ const d=document.createElement('div'); d.className='char'+(c===CH?' sel':''); d.innerHTML=`<span class="e">${c.e}</span><b>${c.name}</b>${c.role}`; d.onclick=()=>{ CH=c; [...roster.children].forEach(x=>x.classList.remove('sel')); d.classList.add('sel'); $('perk').textContent=c.perk; sfx.pick(); }; roster.appendChild(d); });
+  $('perk').textContent=CH.perk; $('hs').textContent=hsText();
 
   // ---------- STATE ----------
-  let S, raf, last, li = 0;
-  function newLevel(i) {
-    const L = LEVELS[i];
-    S = { L, i, lane:1, x:LANE_W*1.5, score:(S&&S.score)||0, lives:(S&&S.lives)||3, t:0, speed:L.speed, objs:[], spawn:0.6,
-      shield:0, toast:null, toastT:0, dist:0, over:false, shake:0, flicker:0, thunderT:4+Math.random()*6, bossT:0, bossX:W/2, bossMouth:0 };
+  let S, raf, last;
+  function newLevel(i){
+    const L=LEVELS[i];
+    S={ L,i, lane:1, x:LANE_W*1.5, score:(S&&S.score)||0, lives:(S&&S.lives)||CH.lives, t:0, speed:L.speed*CH.speed, objs:[], spawn:0.6,
+      shield:0, toast:null, toastT:0, dist:0, over:false, shake:0, flicker:0, thunderT:4+Math.random()*6, bossT:0, bossX:W/2, bossMouth:0,
+      jumpT:0, duckT:0, ignore:CH.ignore||0, combo:0 };
   }
-  function toast(msg, who) { S.toast = msg; S.toastWho = who||''; S.toastT = 2.2; }
-
-  function spawn() {
-    const L = S.L, r = Math.random(), lane = Math.floor(Math.random()*LANES);
-    if (r < L.callRate) { S.objs.push({ type:'call', lane, y:-40, c: CALLS[Math.floor(Math.random()*CALLS.length)] }); if (Math.random()<0.5) sfx.ring(); }
-    else if (r < L.callRate + L.enemyRate*0.5) S.objs.push({ type:'enemy', lane, y:-40, e: L.enemies[Math.floor(Math.random()*L.enemies.length)], wob:Math.random()*6 });
-    else if (r < 0.9) S.objs.push({ type:'sweet', lane, y:-40, e: SWEETS[Math.floor(Math.random()*SWEETS.length)] });
-    else if (r < 0.96) S.objs.push({ type:'thaali', lane, y:-40 });
-    else S.objs.push({ type:'dnd', lane, y:-40 });
+  function toast(msg,who){ S.toast=msg; S.toastWho=who||''; S.toastT=2.2; }
+  function spawn(){
+    const L=S.L, r=Math.random(), lane=Math.floor(Math.random()*LANES);
+    const c=L.callRate, e=c+L.enemyRate*0.5, o=e+L.obsRate;
+    if(r<c){ S.objs.push({type:'call',lane,y:-40,c:CALLS[Math.floor(Math.random()*CALLS.length)]}); if(Math.random()<0.5) sfx.ring(); }
+    else if(r<e) S.objs.push({type:'enemy',lane,y:-40,e:L.enemies[Math.floor(Math.random()*L.enemies.length)],wob:Math.random()*6});
+    else if(r<o){ const hi=Math.random()<0.5; S.objs.push({type:hi?'high':'low',lane,y:-40,e:(hi?L.high:L.low)[Math.floor(Math.random()*3)]}); }
+    else if(r<0.93) S.objs.push({type:'sweet',lane,y:-40,e:SWEETS[Math.floor(Math.random()*SWEETS.length)]});
+    else if(r<0.975) S.objs.push({type:'thaali',lane,y:-40});
+    else S.objs.push({type:'dnd',lane,y:-40});
   }
+  function hurt(msg,who){ S.lives--; S.shake=0.5; S.combo=0; sfx.hit(); $('blood').style.opacity=1; setTimeout(()=>$('blood').style.opacity=0,350); toast(msg,who); if(S.lives===1) sfx.heart(); }
+  function addScore(n){ S.score+=Math.round(n*CH.scoreX); }
 
-  function hurt(msg, who) {
-    S.lives--; S.shake = 0.5; sfx.hit();
-    $('blood').style.opacity = 1; setTimeout(()=>$('blood').style.opacity=0, 350);
-    toast(msg, who);
-    if (S.lives===1) sfx.heart();
-  }
+  function update(dt){
+    const L=S.L;
+    S.t+=dt; S.dist+=S.speed*dt; S.speed=(L.speed+S.t*4)*CH.speed;
+    S.spawn-=dt; if(S.spawn<=0){ spawn(); S.spawn=Math.max(0.3,0.85-S.t*0.006-S.i*0.1); }
+    S.x+=((S.lane+0.5)*LANE_W-S.x)*Math.min(1,dt*14);
+    if(S.shield>0) S.shield-=dt; if(S.toastT>0) S.toastT-=dt; if(S.shake>0) S.shake-=dt;
+    if(S.jumpT>0) S.jumpT-=dt; if(S.duckT>0) S.duckT-=dt;
+    S.flicker=Math.random()<0.03?0.25+Math.random()*0.4:Math.max(0,S.flicker-dt*3);
+    S.thunderT-=dt; if(S.thunderT<=0){ S.thunderT=6+Math.random()*9; sfx.thunder(); $('flash').style.opacity=.8; setTimeout(()=>$('flash').style.opacity=0,90); setTimeout(()=>{$('flash').style.opacity=.5; setTimeout(()=>$('flash').style.opacity=0,60);},180); }
+    if(S.lives===1 && Math.floor(S.t*1.2)!==Math.floor((S.t-dt)*1.2)) sfx.heart();
+    if(L.boss){ S.bossT-=dt; S.bossX=W/2+Math.sin(S.t*0.8)*110; S.bossMouth=Math.max(0,S.bossMouth-dt*2);
+      if(S.bossT<=0){ S.bossT=Math.max(1.4,3.2-S.t*0.03); const a=Math.floor(Math.random()*LANES), b=(a+1+Math.floor(Math.random()*2))%LANES; [a,b].forEach(l=>S.objs.push({type:'call',lane:l,y:120,c:CALLS[Math.floor(Math.random()*CALLS.length)],boss:true})); sfx.laugh(); S.bossMouth=1; } }
 
-  function update(dt) {
-    const L = S.L;
-    S.t += dt; S.dist += S.speed*dt; S.speed = L.speed + S.t*4;
-    S.spawn -= dt; if (S.spawn<=0) { spawn(); S.spawn = Math.max(0.3, 0.85 - S.t*0.006 - S.i*0.1); }
-    S.x += ((S.lane+0.5)*LANE_W - S.x) * Math.min(1, dt*14);
-    if (S.shield>0) S.shield -= dt; if (S.toastT>0) S.toastT -= dt; if (S.shake>0) S.shake -= dt;
-    S.flicker = Math.random()<0.03 ? 0.25+Math.random()*0.4 : Math.max(0, S.flicker-dt*3);
-    S.thunderT -= dt; if (S.thunderT<=0) { S.thunderT = 6+Math.random()*9; sfx.thunder(); $('flash').style.opacity=.8; setTimeout(()=>$('flash').style.opacity=0,90); setTimeout(()=>{$('flash').style.opacity=.5; setTimeout(()=>$('flash').style.opacity=0,60);},180); }
-    if (S.lives===1 && Math.floor(S.t*1.2)!==Math.floor((S.t-dt)*1.2)) sfx.heart();
-
-    // boss
-    if (L.boss) {
-      S.bossT -= dt; S.bossX = W/2 + Math.sin(S.t*0.8)*110; S.bossMouth = Math.max(0, S.bossMouth-dt*2);
-      if (S.bossT<=0) { S.bossT = Math.max(1.4, 3.2 - S.t*0.03); const a = Math.floor(Math.random()*LANES); let b = (a+1+Math.floor(Math.random()*2))%LANES;
-        [a,b].forEach(l => S.objs.push({ type:'call', lane:l, y:120, c: CALLS[Math.floor(Math.random()*CALLS.length)], boss:true })); sfx.laugh(); S.bossMouth = 1; }
-    }
-
-    for (const o of S.objs) {
-      o.y += S.speed*dt*(o.boss?1.25:1);
-      if (o.type==='enemy' && o.e==='🛺' && Math.random()<0.01) o.lane = Math.max(0,Math.min(LANES-1,o.lane+(Math.random()<0.5?-1:1)));
-      if (!o.hit && o.lane===S.lane && Math.abs(o.y-PY) < 44) {
-        o.hit = true;
-        if (o.type==='call') {
-          const line = opt.kn ? o.c.kn : o.c.en;
-          if (S.shield>0) { S.score += 5; toast(opt.kn?'📵 ಕಟ್ ಮಾಡಿದೆ. ಶಾಂತಿ.':'📵 Declined. Peace.'); sfx.pick(); }
-          else { hurt(line, o.c.who); say(line, opt.kn?'kn-IN':'en-IN'); }
-        } else if (o.type==='enemy') {
-          if (S.shield>0) { S.score += 5; sfx.pick(); }
-          else hurt(opt.kn ? '"ಸರ್… ಸರ್… ಟೋಕನ್ ನಂಬರ್ 404 ಸರ್…"' : '"sir… sir… token number 404 sir…"', 'Zombie Customer');
-        } else if (o.type==='sweet') { S.score += 10; sfx.pick(); }
-        else if (o.type==='thaali') { S.score += 50; toast(opt.kn?'📿 ತಾಳಿ ಸಿಕ್ತು!':'📿 Thaali piece secured!'); sfx.thaali(); }
-        else { S.shield = 5; toast(opt.kn?'🧘 Do Not Disturb ON (5s)':'🧘 Do Not Disturb: ON (5s)'); sfx.shield(); }
+    const jumping=S.jumpT>0.08, ducking=S.duckT>0;
+    for(const o of S.objs){
+      o.y+=S.speed*dt*(o.boss?1.25:1);
+      if(o.type==='enemy'&&o.e==='🛺'&&Math.random()<0.01) o.lane=Math.max(0,Math.min(LANES-1,o.lane+(Math.random()<0.5?-1:1)));
+      if(!o.hit&&o.lane===S.lane&&Math.abs(o.y-PY)<44){
+        if(o.type==='low'&&jumping){ o.hit=true; addScore(5); S.combo++; continue; }
+        if(o.type==='high'&&ducking){ o.hit=true; addScore(5); S.combo++; continue; }
+        if(o.type==='sweet'||o.type==='thaali'||o.type==='dnd'){ if(jumping&&o.type!=='sweet'){} }
+        o.hit=true;
+        if(o.type==='call'){
+          const line=opt.kn?o.c.kn:o.c.en;
+          if(S.shield>0){ addScore(5); toast(opt.kn?'📵 ಕಟ್ ಮಾಡಿದೆ. ಶಾಂತಿ.':'📵 Declined. Peace.'); sfx.pick(); }
+          else if(S.ignore>0){ S.ignore--; toast(opt.kn?'🙉 "ಏನು? ಕೇಳಿಸ್ತಿಲ್ಲ."':'🙉 "What? Can\'t hear. Network."', CH.name); sfx.pick(); }
+          else { hurt(line,o.c.who); say(line,opt.kn?'kn-IN':'en-IN'); }
+        } else if(o.type==='enemy'){
+          if(S.shield>0||CH.noEnemy){ addScore(5); sfx.pick(); if(CH.noEnemy) toast(opt.kn?'🛺 "ಮೀಟರ್ ಮೇಲೆ 20 ಎಕ್ಸ್ಟ್ರಾ."':'🛺 "Meter plus 20 extra."', 'Auto Anna'); }
+          else if(CH.id==='chikkamma'){ hurt(opt.kn?'"ನಿನ್ ಮದುವೆ ಯಾವಾಗ?" — ಜಾಂಬಿ ಓಡಿಹೋಯ್ತು, ಆದ್ರೆ ಕಚ್ಚಿತು':'"When is YOUR marriage?" — zombie fled, but bit first','Chikkamma'); }
+          else hurt(opt.kn?'"ಸರ್… ಮ್ಯಾನೇಜರ್ ಅನ್ನು ಭೇಟಿ ಆಗ್ಬೇಕು… ಒಂದೇ ಸಹಿ ಸರ್…"':'"sir… I want to meet the MANAGER… one signature sir…"','Zombie Customer');
+        } else if(o.type==='low'||o.type==='high'){
+          if(S.shield>0){ addScore(2); } else hurt(o.type==='low'?(opt.kn?'💥 ಜಂಪ್ ಮಾಡ್ಬೇಕಿತ್ತು!':'💥 Should have jumped!'):(opt.kn?'💥 ಬಗ್ಗಬೇಕಿತ್ತು!':'💥 Should have ducked!'),'');
+        } else if(o.type==='sweet'){ addScore(10*(CH.sweetX||1)); S.combo++; sfx.pick(); if(CH.id==='amma'&&Math.random()<0.15) toast(opt.kn?'"ಊಟ ಮಾಡಿದ್ಯಾ?"':'"Did you eat?"','Amma'); }
+        else if(o.type==='thaali'){ addScore(50); toast(opt.kn?'📿 ತಾಳಿ ಸಿಕ್ತು!':'📿 Thaali piece secured!'); sfx.thaali(); }
+        else { S.shield=CH.dnd||5; toast(opt.kn?`🧘 Do Not Disturb ON (${S.shield}s)`:`🧘 Do Not Disturb: ON (${S.shield}s)`); sfx.shield(); }
       }
     }
-    S.objs = S.objs.filter(o => o.y < H+60 && !o.hit);
-    if (S.lives<=0) end(false);
-    else if (S.t>=L.dur) nextLevel();
+    S.objs=S.objs.filter(o=>o.y<H+60&&!o.hit);
+    if(S.lives<=0) end(false); else if(S.t>=L.dur) nextLevel();
   }
 
   // ---------- DRAW ----------
-  function draw() {
-    const L = S.L;
-    ctx.save();
-    if (S.shake>0) ctx.translate((Math.random()-.5)*12*S.shake, (Math.random()-.5)*12*S.shake);
-    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,L.sky[0]); g.addColorStop(.55,L.sky[1]); g.addColorStop(1,L.sky[2]);
-    ctx.fillStyle = g; ctx.fillRect(-10,-10,W+20,H+20);
-    // moon
-    ctx.fillStyle = S.i===2 ? '#ff5a1f' : '#e8e6d0'; ctx.globalAlpha=.85; ctx.beginPath(); ctx.arc(W-70,80,28,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-    // floor + lane lines
+  function draw(){
+    const L=S.L; ctx.save();
+    if(S.shake>0) ctx.translate((Math.random()-.5)*12*S.shake,(Math.random()-.5)*12*S.shake);
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,L.sky[0]); g.addColorStop(.55,L.sky[1]); g.addColorStop(1,L.sky[2]); ctx.fillStyle=g; ctx.fillRect(-10,-10,W+20,H+20);
+    ctx.fillStyle=L.moon; ctx.globalAlpha=.85; ctx.beginPath(); ctx.arc(W-70,80,28,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
     ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(0,0,W,H);
     ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.setLineDash([18,18]); ctx.lineDashOffset=-(S.dist%36); ctx.lineWidth=3;
-    for (let i=1;i<LANES;i++){ ctx.beginPath(); ctx.moveTo(i*LANE_W,0); ctx.lineTo(i*LANE_W,H); ctx.stroke(); } ctx.setLineDash([]);
-    // fog bands
-    for (let i=0;i<4;i++){ ctx.fillStyle=L.fog; const y=((S.t*25+i*180)%(H+200))-100; ctx.beginPath(); ctx.ellipse(W/2+Math.sin(S.t+i)*60, y, W*0.8, 50, 0, 0, Math.PI*2); ctx.fill(); }
-
-    // boss
-    if (L.boss) {
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font='110px serif'; ctx.globalAlpha=.9; ctx.fillText('👹', S.bossX, 110); ctx.globalAlpha=1;
-      ctx.font='bold 12px "Baloo 2"'; ctx.fillStyle='#ffb3b3'; ctx.fillText('BRANCH MANAGER (FINAL FORM)', S.bossX, 178);
-      if (S.bossMouth>0) { ctx.fillStyle='#fff'; ctx.font='bold 14px "Baloo 2"'; ctx.fillText(opt.kn?'"ಒಂದು ಸಣ್ಣ ಕೆಲಸ…"':'"one small thing…"', S.bossX, 196); }
-    }
-
-    // objects
+    for(let i=1;i<LANES;i++){ ctx.beginPath(); ctx.moveTo(i*LANE_W,0); ctx.lineTo(i*LANE_W,H); ctx.stroke(); } ctx.setLineDash([]);
+    for(let i=0;i<4;i++){ ctx.fillStyle=L.fog; const y=((S.t*25+i*180)%(H+200))-100; ctx.beginPath(); ctx.ellipse(W/2+Math.sin(S.t+i)*60,y,W*0.8,50,0,0,Math.PI*2); ctx.fill(); }
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    for (const o of S.objs) {
+    if(L.boss){ ctx.font='110px serif'; ctx.globalAlpha=.9; ctx.fillText('👹',S.bossX,110); ctx.globalAlpha=1; ctx.font='bold 12px "Baloo 2"'; ctx.fillStyle='#ffb3b3'; ctx.fillText('BRANCH MANAGER (FINAL FORM)',S.bossX,178); if(S.bossMouth>0){ ctx.fillStyle='#fff'; ctx.font='bold 14px "Noto Sans Kannada","Baloo 2"'; ctx.fillText(opt.kn?'"ಒಂದು ಸಣ್ಣ ಕೆಲಸ…"':'"one small thing…"',S.bossX,196); } }
+    for(const o of S.objs){
       const x=(o.lane+0.5)*LANE_W;
-      if (o.type==='call') { ctx.save(); ctx.translate(x,o.y); ctx.rotate(Math.sin(S.t*25)*0.2); ctx.shadowColor='#ff2a3a'; ctx.shadowBlur=18; ctx.font='42px serif'; ctx.fillText('📱',0,0); ctx.restore();
-        ctx.fillStyle='#ff6b6b'; ctx.font='bold 10px "Baloo 2"'; ctx.fillText(o.c.who.toUpperCase(), x, o.y+34); }
-      else if (o.type==='enemy') { ctx.font='46px serif'; ctx.fillText(o.e, x+Math.sin(S.t*6+o.wob)*6, o.y); }
-      else if (o.type==='sweet') { ctx.font='32px serif'; ctx.fillText(o.e,x,o.y); }
-      else if (o.type==='thaali') { ctx.shadowColor='#ffd700'; ctx.shadowBlur=20; ctx.font='40px serif'; ctx.fillText('📿',x,o.y); ctx.shadowBlur=0; }
+      if(o.type==='call'){ ctx.save(); ctx.translate(x,o.y); ctx.rotate(Math.sin(S.t*25)*0.2); ctx.shadowColor='#ff2a3a'; ctx.shadowBlur=18; ctx.font='42px serif'; ctx.fillText('📱',0,0); ctx.restore(); ctx.fillStyle='#ff6b6b'; ctx.font='bold 10px "Baloo 2"'; ctx.fillText(o.c.who.toUpperCase(),x,o.y+34); }
+      else if(o.type==='enemy'){ ctx.font='46px serif'; ctx.fillText(o.e,x+Math.sin(S.t*6+o.wob)*6,o.y); }
+      else if(o.type==='low'){ ctx.font='44px serif'; ctx.fillText(o.e,x,o.y+8); ctx.fillStyle='#9be7ff'; ctx.font='bold 10px "Baloo 2"'; ctx.fillText('↑ JUMP',x,o.y-30); }
+      else if(o.type==='high'){ ctx.font='44px serif'; ctx.fillText(o.e,x,o.y-30); ctx.fillStyle='#9be7ff'; ctx.font='bold 10px "Baloo 2"'; ctx.fillText('↓ DUCK',x,o.y+10); ctx.strokeStyle='rgba(155,231,255,.4)'; ctx.beginPath(); ctx.moveTo(x-LANE_W/2+6,o.y-8); ctx.lineTo(x+LANE_W/2-6,o.y-8); ctx.stroke(); }
+      else if(o.type==='sweet'){ ctx.font='32px serif'; ctx.fillText(o.e,x,o.y); }
+      else if(o.type==='thaali'){ ctx.shadowColor='#ffd700'; ctx.shadowBlur=20; ctx.font='40px serif'; ctx.fillText('📿',x,o.y); ctx.shadowBlur=0; }
       else { ctx.font='36px serif'; ctx.fillText('🧘',x,o.y); }
     }
-
     // player
-    if (S.shield>0) { ctx.strokeStyle='rgba(120,220,255,.85)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(S.x,PY,46,0,Math.PI*2); ctx.stroke(); }
-    ctx.font='54px serif'; ctx.fillText('🤵🏽',S.x,PY);
-    ctx.fillStyle=S.lives===1?'#ff4d4d':'#f5c542'; ctx.font='bold 13px "Baloo 2"'; ctx.fillText('GOKU',S.x,PY+40);
-
-    // mantapa approaching
-    const left = Math.max(0, L.dur - S.t);
-    if (left<6 && S.i===2) { ctx.font=(50+(6-left)*14)+'px serif'; ctx.globalAlpha=Math.min(1,(6-left)/3); ctx.fillText('🛕', W/2, 250+(6-left)*25); ctx.globalAlpha=1; }
-
-    // flashlight vignette + flicker
-    const v = ctx.createRadialGradient(S.x,PY,60,S.x,PY,H*0.85);
-    v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,'+(0.78+S.flicker*0.2)+')'); ctx.fillStyle=v; ctx.fillRect(-10,-10,W+20,H+20);
-    if (S.flicker>0) { ctx.fillStyle='rgba(0,0,0,'+S.flicker*0.6+')'; ctx.fillRect(-10,-10,W+20,H+20); }
-
+    const jh = S.jumpT>0 ? Math.sin(Math.min(1,S.jumpT/0.55)*Math.PI)*70 : 0;
+    const py = PY - jh;
+    if(S.shield>0){ ctx.strokeStyle='rgba(120,220,255,.85)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(S.x,py,46,0,Math.PI*2); ctx.stroke(); }
+    if(jh>0){ ctx.fillStyle='rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(S.x,PY+30,26-jh/5,8,0,0,Math.PI*2); ctx.fill(); }
+    ctx.save(); ctx.translate(S.x,py); if(S.duckT>0) ctx.scale(1.25,0.6); ctx.font='54px serif'; ctx.fillText(CH.e,0,0); ctx.restore();
+    ctx.fillStyle=S.lives===1?'#ff4d4d':'#f5c542'; ctx.font='bold 13px "Baloo 2"'; ctx.fillText(CH.name.toUpperCase(),S.x,PY+40);
+    const left=Math.max(0,L.dur-S.t);
+    if(left<6&&S.i===2){ ctx.font=(50+(6-left)*14)+'px serif'; ctx.globalAlpha=Math.min(1,(6-left)/3); ctx.fillText('🛕',W/2,250+(6-left)*25); ctx.globalAlpha=1; }
+    const v=ctx.createRadialGradient(S.x,py,60,S.x,py,H*0.85); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,'+(0.78+S.flicker*0.2)+')'); ctx.fillStyle=v; ctx.fillRect(-10,-10,W+20,H+20);
+    if(S.flicker>0){ ctx.fillStyle='rgba(0,0,0,'+S.flicker*0.6+')'; ctx.fillRect(-10,-10,W+20,H+20); }
     // HUD
     ctx.textAlign='left'; ctx.fillStyle='#fff3d6'; ctx.font='bold 20px "Baloo 2"'; ctx.fillText('Score '+S.score,14,28);
-    ctx.textAlign='right'; ctx.fillText('❤️'.repeat(Math.max(0,S.lives))+'🖤'.repeat(Math.max(0,3-S.lives)),W-14,28);
-    ctx.textAlign='center'; ctx.fillStyle='#f5c542'; ctx.font='bold 15px "Baloo 2"';
-    ctx.fillText((S.i===2?'Muhurtha in ':'Escape in ')+Math.ceil(left)+'s',W/2,28);
+    ctx.textAlign='right'; ctx.fillText('❤️'.repeat(Math.max(0,S.lives))+'🖤'.repeat(Math.max(0,CH.lives-S.lives)),W-14,28);
+    ctx.textAlign='center'; ctx.fillStyle='#f5c542'; ctx.font='bold 15px "Baloo 2"'; ctx.fillText((S.i===2?'Muhurtha in ':'Escape in ')+Math.ceil(left)+'s',W/2,28);
     ctx.fillStyle='rgba(255,255,255,.15)'; ctx.fillRect(14,42,W-28,6); ctx.fillStyle='#c1121f'; ctx.fillRect(14,42,(W-28)*Math.min(1,S.t/L.dur),6);
-    ctx.fillStyle='#9be7ff'; ctx.font='11px "Baloo 2"'; ctx.fillText(L.tag, W/2, 60);
-
-    // toast
-    if (S.toastT>0 && S.toast) {
-      ctx.globalAlpha=Math.min(1,S.toastT*2); ctx.fillStyle='rgba(10,0,5,.85)'; roundRect(16,H-84,W-32,64,12); ctx.fill();
-      ctx.strokeStyle='#c1121f'; ctx.lineWidth=2; ctx.stroke();
-      ctx.textAlign='center'; if (S.toastWho) { ctx.fillStyle='#ff6b6b'; ctx.font='bold 11px "Baloo 2"'; ctx.fillText('📞 '+S.toastWho.toUpperCase(), W/2, H-70); }
-      ctx.fillStyle='#fff'; ctx.font='bold 14px "Noto Sans Kannada","Baloo 2"'; wrapText(S.toast, W/2, H-50, W-60, 18); ctx.globalAlpha=1;
-    }
+    ctx.fillStyle='#9be7ff'; ctx.font='11px "Baloo 2"'; ctx.fillText(L.tag,W/2,60);
+    if(S.combo>=5){ ctx.fillStyle='#ffd700'; ctx.font='bold 14px "Baloo 2"'; ctx.fillText('🔥 combo ×'+S.combo,W/2,78); }
+    if(S.toastT>0&&S.toast){ ctx.globalAlpha=Math.min(1,S.toastT*2); ctx.fillStyle='rgba(10,0,5,.85)'; roundRect(16,H-84,W-32,64,12); ctx.fill(); ctx.strokeStyle='#c1121f'; ctx.lineWidth=2; ctx.stroke(); ctx.textAlign='center'; if(S.toastWho){ ctx.fillStyle='#ff6b6b'; ctx.font='bold 11px "Baloo 2"'; ctx.fillText('📞 '+S.toastWho.toUpperCase(),W/2,H-70); } ctx.fillStyle='#fff'; ctx.font='bold 14px "Noto Sans Kannada","Baloo 2"'; wrapText(S.toast,W/2,H-50,W-60,18); ctx.globalAlpha=1; }
     ctx.restore();
   }
   function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
@@ -292,31 +285,35 @@
 
   // ---------- FLOW ----------
   function loop(ts){ if(!last) last=ts; const dt=Math.min(0.05,(ts-last)/1000); last=ts; update(dt); draw(); if(!S.over) raf=requestAnimationFrame(loop); }
-
-  function showLevel(i) {
-    li = i; newLevel(i); const L = LEVELS[i];
-    $('lvlTag').textContent=L.tag; $('lvlTitle').textContent=L.title; $('lvlStory').textContent=L.story; $('lvlHint').textContent=L.hint;
-    $('over').classList.add('hidden'); $('start').classList.add('hidden'); $('level').classList.remove('hidden'); draw();
-  }
-  function go(){ $('level').classList.add('hidden'); $('start').classList.add('hidden'); audio(); startDrone(S.i); last=0; sfx.thunder(); raf=requestAnimationFrame(loop); }
-  function nextLevel(){ cancelAnimationFrame(raf); S.over=true; stopDrone(); if (S.i>=LEVELS.length-1) end(true); else { sfx.win(); showLevel(S.i+1); } }
+  function showLevel(i){ newLevel(i); const L=LEVELS[i]; $('lvlTag').textContent=L.tag; $('lvlTitle').textContent=L.title; $('lvlStory').textContent=L.story; $('lvlHint').textContent=L.hint; $('over').classList.add('hidden'); $('start').classList.add('hidden'); $('level').classList.remove('hidden'); draw(); }
+  function go(){ $('level').classList.add('hidden'); audio(); startDrone(S.i); last=0; sfx.thunder(); raf=requestAnimationFrame(loop); }
+  function nextLevel(){ cancelAnimationFrame(raf); S.over=true; stopDrone(); if(S.i>=LEVELS.length-1) end(true); else { sfx.win(); showLevel(S.i+1); } }
   function end(won){
     S.over=true; cancelAnimationFrame(raf); stopDrone(); won?sfx.win():sfx.laugh();
-    $('overTitle').textContent = won ? '🎉 Thaali tied. Phone dead. Goku alive.' : '📱 Goku picked up the call…';
-    $('overMsg').textContent = won
-      ? 'The Manager dissolved into a cloud of unsigned forms. The purohit said "late by 2 seconds but ok". Branch can wait till Monday. Congrats, Goku!'
-      : '"Sir just 2 minutes" became 2 hours. The muhurtha passed. The purohit left. The zombie customers are still in queue. Try again, manager sir.';
-    $('overScore').textContent = 'Score: '+S.score+' · Reached '+LEVELS[S.i].tag;
-    if (won) say(opt.kn?'ಅಭಿನಂದನೆಗಳು ಗೋಕು. ಫೋನ್ ಸ್ವಿಚ್ ಆಫ್.':'Congratulations Goku. Phone switched off.', opt.kn?'kn-IN':'en-IN');
+    const isNew=setHS(CH.id,S.score);
+    $('overTitle').textContent=won?'🎉 Thaali tied. Phone dead. '+CH.name+' alive.':'📱 '+CH.name+' picked up the call…';
+    $('overMsg').textContent=won?'The Manager dissolved into a cloud of unsigned forms. The purohit said "late by 2 seconds but ok". Branch can wait till Monday. Congrats, Goku!'
+      :'"Sir just 2 minutes" became 2 hours. The muhurtha passed. The purohit left. The zombie customers are still in queue. Try again.';
+    $('overScore').textContent='Score: '+S.score+' · Reached '+LEVELS[S.i].tag+(isNew?' · 🏆 NEW BEST':'');
+    $('overHs').textContent=hsText(); $('hs').textContent=hsText();
+    if(won) say(opt.kn?'ಅಭಿನಂದನೆಗಳು ಗೋಕು. ಫೋನ್ ಸ್ವಿಚ್ ಆಫ್.':'Congratulations Goku. Phone switched off.',opt.kn?'kn-IN':'en-IN');
     $('over').classList.remove('hidden');
   }
-  $('play').onclick = () => { audio(); S=null; showLevel(0); };
-  $('go').onclick = go;
-  $('again').onclick = () => { S=null; showLevel(0); };
+  $('play').onclick=()=>{ audio(); S=null; showLevel(0); };
+  $('go').onclick=go;
+  $('again').onclick=()=>{ S=null; showLevel(0); };
+  $('menu').onclick=()=>{ S=null; $('over').classList.add('hidden'); $('start').classList.remove('hidden'); newLevel(0); S.over=true; draw(); };
 
-  window.addEventListener('keydown', e => { if(!S||S.over) return; if(e.key==='ArrowLeft'||e.key==='a') S.lane=Math.max(0,S.lane-1); if(e.key==='ArrowRight'||e.key==='d') S.lane=Math.min(LANES-1,S.lane+1); });
-  cv.addEventListener('pointerdown', e => { if(!S||S.over) return; const r=cv.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width; S.lane = x<0.5 ? Math.max(0,S.lane-1) : Math.min(LANES-1,S.lane+1); });
-  if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+  // ---------- CONTROLS ----------
+  function act(dir){ if(!S||S.over) return;
+    if(dir==='L') S.lane=Math.max(0,S.lane-1); else if(dir==='R') S.lane=Math.min(LANES-1,S.lane+1);
+    else if(dir==='U'){ if(S.jumpT<=0){ S.jumpT=0.55; S.duckT=0; sfx.jump(); } }
+    else if(dir==='D'){ S.duckT=0.5; S.jumpT=0; sfx.duck(); } }
+  window.addEventListener('keydown',e=>{ const k=e.key; if(k==='ArrowLeft'||k==='a') act('L'); if(k==='ArrowRight'||k==='d') act('R'); if(k==='ArrowUp'||k==='w'||k===' ') act('U'); if(k==='ArrowDown'||k==='s') act('D'); });
+  let sx=0,sy=0,st=0;
+  cv.addEventListener('pointerdown',e=>{ sx=e.clientX; sy=e.clientY; st=Date.now(); });
+  cv.addEventListener('pointerup',e=>{ const dx=e.clientX-sx, dy=e.clientY-sy; if(Math.abs(dx)<18&&Math.abs(dy)<18){ const r=cv.getBoundingClientRect(); act((e.clientX-r.left)/r.width<0.5?'L':'R'); return; } if(Math.abs(dx)>Math.abs(dy)) act(dx<0?'L':'R'); else act(dy<0?'U':'D'); });
+  if('speechSynthesis' in window) speechSynthesis.onvoiceschanged=()=>{};
   newLevel(0); S.over=true; draw();
 })();
 </script>
