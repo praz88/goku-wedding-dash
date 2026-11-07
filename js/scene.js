@@ -35,12 +35,13 @@ export async function buildScene(renderer, opts) {
   // ---------------- loaders ----------------
   const manager = new THREE.LoadingManager(); let loaded = 0, total = 12;
   manager.onProgress = (u, l, t) => onProgress && onProgress(l / Math.max(t, total));
+  const A = (u) => (window.__ASSETS && window.__ASSETS[u]) || u; // packed data-URI fallback (see tools/pack-assets.js)
   const gltf = new GLTFLoader(manager); gltf.setMeshoptDecoder(MeshoptDecoder);
   const texL = new THREE.TextureLoader(manager);
   const loadTex = (u, srgb = true) => { const t = texL.load(u); if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
 
   // ---------------- environment ----------------
-  try { const env = await new RGBELoader(manager).loadAsync('assets/tex/env.hdr'); env.mapping = THREE.EquirectangularReflectionMapping; scene.environment = env; scene.environmentIntensity = 0.22; } catch (e) { console.warn('env', e); }
+  try { const env = await new RGBELoader(manager).loadAsync(A('assets/tex/env.hdr')); env.mapping = THREE.EquirectangularReflectionMapping; scene.environment = env; scene.environmentIntensity = 0.22; } catch (e) { console.warn('env', e); }
 
   // ---------------- shell ----------------
   const { W, H, Z0, Z1 } = HALL, L = Z0 - Z1, ZC = (Z0 + Z1) / 2;
@@ -311,7 +312,7 @@ export async function buildScene(renderer, opts) {
   const silhouette = (root, color = 0x0b0a0a) => { root.traverse(m => { if (m.isMesh) { m.material = std({ color, roughness: 0.95, metalness: 0 }); m.castShadow = true; m.frustumCulled = false; } }); };
   const fitHeight = (obj, h, center = false) => { obj.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(obj); const s = h / (b.max.y - b.min.y); obj.scale.multiplyScalar(s); obj.updateMatrixWorld(true); const b2 = new THREE.Box3().setFromObject(obj); const c = b2.getCenter(new THREE.Vector3()); if (center) obj.position.sub(c); else { obj.position.x -= c.x; obj.position.z -= c.z; obj.position.y -= b2.min.y; } };
   const mixers = [];
-  const load = (u) => gltf.loadAsync(u).catch(e => { console.warn('model failed', u, e); return null; });
+  const load = (u) => gltf.loadAsync(A(u)).catch(e => { console.warn('model failed', u, e); return null; });
   const [gMich, gXbot, gRpm, gFace, gHead, gMug] = await Promise.all(['assets/models/Michelle.glb', 'assets/models/Xbot.glb', 'assets/models/readyplayer.me.glb', 'assets/models/facecap.glb', 'assets/models/head.glb', 'assets/models/coffeeMug.glb'].map(load));
 
   // the three who got away (Michelle, slowed samba = eerie sway)
