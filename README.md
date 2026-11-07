@@ -37,9 +37,8 @@ synthesized in the browser (reverb, rain, hum, footsteps, whispers).
 ## Run locally
 
 ```sh
-node server.js        # http://localhost:8080  (leaderboard → scores.json)
+npm install && npm run dev     # builds dist/game.js, serves http://localhost:8080
 ```
-Needs a server (ES modules) — `file://` won't work.
 
 Debug helpers: `?anom=cabin_eyes` forces an anomaly on every walk,
 `?pos=x,z,yaw,pitch` starts the camera somewhere specific.

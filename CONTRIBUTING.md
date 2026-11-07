@@ -21,6 +21,13 @@
 Build it in `scene.js`, call `reg('yourId', ...meshes)` so it's tappable, add
 `LORE.yourId` in `story.js`, and (optionally) a `propPos` entry for spatial sound.
 
+## Build & run
+```sh
+npm install        # esbuild only (dev dependency)
+npm run dev        # builds dist/game.js and serves http://localhost:8080
+```
+The browser loads one bundled script (`dist/game.js`) so no import maps or module support are needed on old phones. Rebuild after editing anything in `js/`.
+
 ## Rules
 - No build step, no npm dependencies at runtime (three.js is vendored).
 - Keep total assets small; compress models with `gltf-transform optimize`.

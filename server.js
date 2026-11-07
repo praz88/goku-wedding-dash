@@ -40,7 +40,7 @@ http.createServer((req, res) => {
   // static
   let p = decodeURIComponent(url.pathname); if (p === '/') p = '/index.html';
   const file = path.normalize(path.join(ROOT, p));
-  if (!file.startsWith(ROOT) || !/^\/(index\.html|vendor\/|js\/|assets\/)/.test(p) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': (p.startsWith('/vendor/') || p.startsWith('/assets/')) ? 'public, max-age=86400' : 'no-cache' });
+  if (!file.startsWith(ROOT) || !/^\/(index\.html|vendor\/|js\/|assets\/|dist\/)/.test(p) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': (p.startsWith('/vendor/') || p.startsWith('/assets/') || p.startsWith('/dist/')) ? 'public, max-age=86400' : 'no-cache' });
   fs.createReadStream(file).pipe(res);
 }).listen(PORT, '0.0.0.0', () => console.log('listening on', PORT, 'data at', FILE));

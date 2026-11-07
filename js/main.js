@@ -37,6 +37,7 @@ $('send').onclick = postScore; $('pname').addEventListener('keydown', e => { if 
 
 // ---------------- renderer / post ----------------
 const canvas = $('c');
+if (!(canvas.getContext('webgl2') || canvas.getContext('webgl'))) { window.__fail && window.__fail('this browser has no WebGL — try Chrome or Safari'); }
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !opt.hq, powerPreference: 'high-performance' });
 renderer.shadowMap.enabled = opt.hq; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
 let world = null, composer = null, camera = null, built = false, lensPass = null, bloom = null;
@@ -124,16 +125,18 @@ function typewrite(el, html, done) { if (typer) clearInterval(typer); el.innerHT
 function storyCard(i, cb) { const s = story[i]; if (!s || !s.text) { cb(); return; } $('cardTag').textContent = s.tag; $('cardTitle').textContent = s.title; $('card').classList.remove('hidden'); $('cardBtn').disabled = true; $('cardBtn').textContent = 'Continue'; typewrite($('cardText'), s.text, () => { $('cardBtn').disabled = false; }); $('cardBtn').onclick = () => { $('card').classList.add('hidden'); audio.hush(); cb(); }; if (opt.voice) audio.say(s.text); }
 
 async function start() {
+  $('play').textContent = 'Loading the branch…'; $('play').disabled = true;
   audio.init(); audio.setEnabled(opt.snd); g = G(); story = STORY(g); anoms = ANOMS(g);
   $('start').classList.add('hidden'); $('over').classList.add('hidden');
   if (!built) {
     $('loading').classList.remove('hidden');
-    try { world = await buildScene(renderer, { hq: opt.hq, onProgress: p => { $('bar').firstElementChild.style.width = Math.round(p * 100) + '%'; } }); }
-    catch (e) { console.error(e); $('loadNote').textContent = 'Could not start the 3D hall: ' + e.message; return; }
+    try { world = await buildScene(renderer, { hq: opt.hq, mobile: isMobile, onProgress: p => { $('bar').firstElementChild.style.width = Math.round(p * 100) + '%'; } }); }
+    catch (e) { console.error(e); $('loading').classList.add('hidden'); $('start').classList.remove('hidden'); $('play').textContent = 'Begin: Friday, 11:58 PM'; $('play').disabled = false; window.__fail && window.__fail('could not build the 3D hall — ' + (e && e.message)); return; }
     camera = world.camera; setupPost(); built = true; window.__world = world; window.__cam = cam; $('loading').classList.add('hidden');
     world.events.onThunder = (delay) => setTimeout(() => audio.thunder(), delay * 1000); world.events.onDip = (sec) => audio.dip(0.8, sec);
     requestAnimationFrame(loop);
   }
+  $('play').textContent = 'Begin: Friday, 11:58 PM'; $('play').disabled = false;
   S = newState(); S.over = false; world.reset(); $('ui').classList.remove('hidden'); fade(true); audio.startAmbience(0);
   storyCard(0, () => storyCard(1, () => newWalk()));
 }

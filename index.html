@@ -58,7 +58,6 @@
   #walkhint { position:absolute; left:50%; top:72%; transform:translateX(-50%); color:rgba(255,255,255,.55); font-size:12px; letter-spacing:1px; z-index:2; pointer-events:none; text-shadow:0 1px 3px #000; transition:opacity 1s; }
   #walkhint.hidden { opacity:0; }
 </style>
-<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }</script>
 </head>
 <body>
 <div id="game">
@@ -93,6 +92,7 @@
     </div>
     <div id="lbStart" class="lb"></div>
     <button id="play">Begin: Friday, 11:58 PM</button>
+    <div id="err" style="display:none;margin-top:10px;color:#ff6b6b;font-size:13px;max-width:360px"></div>
     <p class="small">Headphones recommended · open source on GitHub<br>3D: three.js · head scan by Lee Perry-Smith (CC BY 3.0) · characters via Mixamo</p>
   </div>
 
@@ -112,7 +112,13 @@
     <button id="again">Walk again</button>
   </div>
 </div>
+<script>
+  // show any startup failure on screen instead of a dead button
+  window.__fail = function (msg) { var el = document.getElementById('err'); el.textContent = 'Something broke: ' + msg; el.style.display = 'block'; var l = document.getElementById('loading'); if (l) l.classList.add('hidden'); };
+  window.addEventListener('error', function (e) { if (e && e.message) window.__fail(e.message); });
+  window.addEventListener('unhandledrejection', function (e) { window.__fail((e.reason && e.reason.message) || String(e.reason)); });
+</script>
 <script src="assets/pack.js" onerror="this.remove()"></script>
-<script type="module" src="js/main.js"></script>
+<script src="dist/game.js" defer onerror="window.__fail('could not download the game script')"></script>
 </body>
 </html>

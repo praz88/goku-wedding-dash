@@ -18,7 +18,7 @@ const PL = (w, h) => new THREE.PlaneGeometry(w, h);
 const CYL = (r1, r2, h, s = 24) => new THREE.CylinderGeometry(r1, r2, h, s);
 
 export async function buildScene(renderer, opts) {
-  const { hq, onProgress } = opts;
+  const { hq, onProgress, mobile } = opts; const TS = mobile ? 512 : 1024; // texture size: lighter generation on phones
   RectAreaLightUniformsLib.init();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x020203);
@@ -45,7 +45,7 @@ export async function buildScene(renderer, opts) {
 
   // ---------------- shell ----------------
   const { W, H, Z0, Z1 } = HALL, L = Z0 - Z1, ZC = (Z0 + Z1) / 2;
-  const F = TX.floorSet(1024, 2); F.map.repeat.set(W / 1.2, L / 1.2); F.roughnessMap.repeat.copy(F.map.repeat); F.normalMap.repeat.copy(F.map.repeat); [F.map, F.roughnessMap, F.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
+  const F = TX.floorSet(TS, 2); F.map.repeat.set(W / 1.2, L / 1.2); F.roughnessMap.repeat.copy(F.map.repeat); F.normalMap.repeat.copy(F.map.repeat); [F.map, F.roughnessMap, F.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
   const floorMat = std({ map: F.map, roughnessMap: F.roughnessMap, normalMap: F.normalMap, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 1, metalness: 0.05, envMapIntensity: 0.9, transparent: hq, opacity: hq ? 0.86 : 1 });
   const floor = new THREE.Mesh(PL(W, L), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(0, hq ? 0.004 : 0, ZC); floor.receiveShadow = true; scene.add(floor);
   let reflector = null;
@@ -54,9 +54,9 @@ export async function buildScene(renderer, opts) {
     reflector.rotation.x = -Math.PI / 2; reflector.position.set(0, 0, ZC); scene.add(reflector);
     const orig = reflector.onBeforeRender.bind(reflector); reflector.onBeforeRender = (r, s, c, g, m, gr) => { floor.visible = false; orig(r, s, c, g, m, gr); floor.visible = true; };
   }
-  const C = TX.ceilingSet(512); C.map.repeat.set(W / 1.2, L / 1.2); C.normalMap.repeat.copy(C.map.repeat); [C.map, C.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
+  const C = TX.ceilingSet(mobile ? 256 : 512); C.map.repeat.set(W / 1.2, L / 1.2); C.normalMap.repeat.copy(C.map.repeat); [C.map, C.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
   const ceil = new THREE.Mesh(PL(W, L), std({ map: C.map, normalMap: C.normalMap, roughness: 0.95 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, H, ZC); scene.add(ceil);
-  const WS = TX.wallSet(1024, 1024, H);
+  const WS = TX.wallSet(TS, TS, H);
   const wallMat = (len, start) => { const m = std({ map: WS.map.clone(), roughnessMap: WS.roughnessMap.clone(), normalMap: WS.normalMap.clone(), normalScale: new THREE.Vector2(0.5, 0.5), roughness: 1 }); [m.map, m.roughnessMap, m.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(len / 4, 1); t.offset.set(start / 4, 0); t.needsUpdate = true; }); return m; };
   const wallSeg = (x, z0, z1, y0, y1, ry) => { const len = Math.abs(z1 - z0), h = y1 - y0; const m = new THREE.Mesh(PL(len, h), wallMat(len, Math.min(z0, z1))); m.position.set(x, (y0 + y1) / 2, (z0 + z1) / 2); m.rotation.y = ry; m.receiveShadow = true; scene.add(m); if (y0 > 0) { m.material.map.offset.y = y0 / H; m.material.map.repeat.y = h / H; [m.material.roughnessMap, m.material.normalMap].forEach(t => { t.offset.y = y0 / H; t.repeat.y = h / H; }); } return m; };
   // left wall with openings for the cabin door (z -4.2..-5.2) and strong room (z -9.8..-11.2)

@@ -4,3 +4,5 @@ docs
 *.md
 scores.json
 assets/pack.js
+node_modules
+dist

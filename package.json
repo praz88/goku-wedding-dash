@@ -1,0 +1,15 @@
+{
+  "name": "goku-wedding-dash",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Goku's Wedding Dash: Weekend Nightmare — a first-person horror-comedy anomaly hunt in a bank branch.",
+  "license": "MIT",
+  "scripts": {
+    "build": "node tools/build.js",
+    "start": "node server.js",
+    "dev": "node tools/build.js && node server.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
