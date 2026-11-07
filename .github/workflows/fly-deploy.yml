@@ -16,6 +16,14 @@ jobs:
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Remove machines that have no volume (one-time migration)
+        run: |
+          flyctl volumes list -a goku-wedding-dash
+          for id in $(flyctl machines list -a goku-wedding-dash --json | jq -r '.[] | select((.config.mounts // []) | length == 0) | .id'); do
+            echo "destroying volume-less machine $id"; flyctl machine destroy "$id" -a goku-wedding-dash --force
+          done
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - run: flyctl deploy --remote-only --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
