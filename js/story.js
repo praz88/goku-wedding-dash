@@ -9,7 +9,7 @@ export const STORY = () => [
   { tag: 'PROLOGUE', title: 'The man who always picks up', text:
 `This is <b>Goku</b>.
 
-Engineer by degree. Banker by profession — two banks, three transfers, one promotion. <b>Branch manager</b> now, because he was the only one who answered every call.
+Engineer by degree. Banker by profession. <b>Branch manager</b> now, because he was the only one who answered every call.
 
 That is the whole problem. He answers <i>every</i> call.
 
