@@ -1,21 +1,21 @@
-// Tiny zero-dependency server: serves index.html + a JSON leaderboard on a Fly volume.
+// Tiny zero-dependency server: static files + a JSON leaderboard on a Fly volume.
 const http = require('http'), fs = require('fs'), path = require('path');
 const PORT = process.env.PORT || 8080;
-const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : __dirname);
+const ROOT = __dirname;
+const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : ROOT);
 const FILE = path.join(DATA_DIR, 'scores.json');
 const MAX_SCORE = 20000, MAX_ROWS = 500;
+const MIME = { '.hdr': 'application/octet-stream', '.glb': 'model/gltf-binary', '.webp': 'image/webp', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 let scores = [];
 try { scores = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) { scores = []; }
 const save = () => { try { fs.writeFileSync(FILE, JSON.stringify(scores)); } catch (e) { console.error('save failed', e.message); } };
-const html = () => fs.readFileSync(path.join(__dirname, 'index.html'));
-const recent = new Map(); // ip -> last post ms (light rate limit)
+const recent = new Map();
 
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/scores' && req.method === 'GET') {
-    const top = [...scores].sort((a, b) => b.score - a.score).slice(0, 50);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    return res.end(JSON.stringify(top));
+    return res.end(JSON.stringify([...scores].sort((a, b) => b.score - a.score).slice(0, 50)));
   }
   if (url.pathname === '/api/scores' && req.method === 'POST') {
     const ip = req.headers['fly-client-ip'] || req.socket.remoteAddress;
@@ -37,6 +37,10 @@ http.createServer((req, res) => {
     return;
   }
   if (url.pathname === '/health') { res.writeHead(200); return res.end('ok'); }
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
-  res.end(html());
+  // static
+  let p = decodeURIComponent(url.pathname); if (p === '/') p = '/index.html';
+  const file = path.normalize(path.join(ROOT, p));
+  if (!file.startsWith(ROOT) || !/^\/(index\.html|vendor\/|js\/|assets\/)/.test(p) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': (p.startsWith('/vendor/') || p.startsWith('/assets/')) ? 'public, max-age=86400' : 'no-cache' });
+  fs.createReadStream(file).pipe(res);
 }).listen(PORT, '0.0.0.0', () => console.log('listening on', PORT, 'data at', FILE));

@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
 <title>Goku's Wedding Dash: Weekend Nightmare</title>
-<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Baloo+2:wght@600;800&family=Noto+Sans+Kannada:wght@600&family=Special+Elite&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Baloo+2:wght@600;800&family=Special+Elite&display=swap" rel="stylesheet">
 <style>
   :root { --gold:#f5c542; --blood:#c1121f; --cream:#fff3d6; --ink:#9be7ff; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  html,body { height:100%; background:#050308; color:var(--cream); font-family:'Baloo 2','Noto Sans Kannada',system-ui,sans-serif; overflow:hidden; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
-  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
-  #game { position:relative; width:min(100vw, 100vh*0.5625); height:min(100vh, 100vw/0.5625); }
-  canvas { width:100%; height:100%; display:block; background:#0b0612; }
-  .overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; background:radial-gradient(ellipse at center, rgba(40,0,20,.94), rgba(0,0,0,.985)); overflow-y:auto; z-index:5; }
+  html,body { height:100%; background:#000; color:var(--cream); font-family:'Baloo 2',system-ui,sans-serif; overflow:hidden; touch-action:none; -webkit-user-select:none; user-select:none; overscroll-behavior:none; }
+  #game { position:fixed; inset:0; background:#000; }
+  canvas { display:block; width:100%; height:100%; }
+  .overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom)); background:radial-gradient(ellipse at center, rgba(30,0,14,.94), rgba(0,0,0,.985)); overflow-y:auto; z-index:5; }
   .overlay.hidden { display:none; }
   h1 { font-family:'Creepster',cursive; font-size:clamp(32px,9vw,60px); color:var(--blood); line-height:1; text-shadow:0 0 18px #ff2a3a, 0 4px 0 #3a0008; }
   h1 small { display:block; font-family:'Baloo 2'; font-size:.38em; color:var(--gold); letter-spacing:3px; text-shadow:none; margin-top:6px; }
@@ -24,15 +24,12 @@
   .pill { display:inline-flex; align-items:center; gap:6px; background:#1b0a1e; border:1px solid #5a1a3a; border-radius:999px; padding:6px 12px; margin:3px; font-size:13px; cursor:pointer; }
   .pill input { accent-color:var(--blood); }
   button { margin-top:12px; font-family:inherit; font-weight:800; font-size:18px; padding:11px 26px; border:0; border-radius:14px; background:var(--blood); color:#fff; cursor:pointer; box-shadow:0 5px 0 #5a0008, 0 0 24px rgba(255,0,40,.35); }
-  button.ghost { background:#2a0f24; box-shadow:0 5px 0 #120610; }
   button:active { transform:translateY(3px); box-shadow:0 2px 0 #5a0008; }
   button:disabled { opacity:.4; }
   .small { font-size:12px; opacity:.7; }
   .tag { font-family:'Creepster'; color:var(--ink); font-size:14px; letter-spacing:4px; }
-  #flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:4; }
-  #blood { position:absolute; inset:0; pointer-events:none; opacity:0; box-shadow: inset 0 0 120px 40px rgba(193,18,31,.9); transition:opacity .15s; z-index:4; }
   .names { display:flex; flex-direction:column; gap:6px; width:100%; max-width:360px; }
-  .names input { font-family:inherit; font-size:15px; padding:9px 10px; border-radius:10px; border:1px solid #5a1a3a; background:#140816; color:#fff; }
+  .names input, .submit input { font-family:inherit; font-size:15px; padding:9px 10px; border-radius:10px; border:1px solid #5a1a3a; background:#140816; color:#fff; min-width:0; }
   .lb { width:100%; max-width:360px; font-size:13px; margin:6px 0; }
   .lb table { width:100%; border-collapse:collapse; }
   .lb td { padding:3px 6px; border-bottom:1px solid #2a0a20; text-align:left; }
@@ -40,40 +37,52 @@
   .lb .me td { background:rgba(193,18,31,.25); }
   .lb h4 { color:var(--gold); letter-spacing:2px; font-size:12px; margin-bottom:4px; }
   .submit { display:flex; gap:6px; align-items:center; margin-top:6px; width:100%; max-width:360px; }
-  .submit.hidden { display:none; }
-  .submit input { flex:1; font-family:inherit; font-size:15px; padding:9px 10px; border-radius:10px; border:1px solid #5a1a3a; background:#140816; color:#fff; min-width:0; }
-  /* in-game HUD */
-  #hud { position:absolute; left:0; right:0; top:0; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; font-size:13px; z-index:3; pointer-events:none; text-shadow:0 1px 3px #000; }
+  .submit.hidden { display:none; } .submit input { flex:1; }
+  /* in-game */
+  #ui.hidden { display:none; }
+  #hud { position:absolute; left:0; right:0; top:0; padding:calc(10px + env(safe-area-inset-top)) 14px 10px; display:flex; justify-content:space-between; align-items:center; font-size:13px; z-index:3; pointer-events:none; text-shadow:0 1px 4px #000; }
   #hud .t { color:var(--gold); font-weight:800; } #hud .n { color:var(--ink); letter-spacing:2px; font-family:'Creepster'; }
-  #lore { position:absolute; left:10px; right:10px; bottom:92px; background:rgba(8,0,6,.9); border:1px solid #5a1a3a; border-radius:12px; padding:10px 12px; font-family:'Special Elite',monospace; font-size:14px; line-height:1.45; min-height:64px; z-index:3; }
-  #lore b { color:var(--gold); } #lore.hint { color:var(--ink); }
-  #acts { position:absolute; left:0; right:0; bottom:0; display:flex; gap:8px; padding:10px; z-index:3; background:linear-gradient(transparent, rgba(0,0,0,.8)); }
-  #acts button { flex:1; margin:0; font-size:16px; padding:12px 6px; }
+  #lore { position:absolute; left:10px; right:10px; bottom:calc(84px + env(safe-area-inset-bottom)); background:rgba(8,0,6,.82); border:1px solid #5a1a3a; border-radius:12px; padding:10px 12px; font-family:'Special Elite',monospace; font-size:14px; line-height:1.45; min-height:58px; z-index:3; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); transition:opacity .4s; }
+  #lore b { color:var(--gold); } #lore.hint { color:var(--ink); } #lore.faded { opacity:.35; }
+  #acts { position:absolute; left:0; right:0; bottom:0; display:flex; gap:8px; padding:8px 10px calc(10px + env(safe-area-inset-bottom)); z-index:3; background:linear-gradient(transparent, rgba(0,0,0,.85)); }
+  #acts button { flex:1; margin:0; font-size:14px; padding:11px 6px; }
   #acts .back { background:#2a0f24; box-shadow:0 5px 0 #120610; }
   #acts .fwd { background:#1d4d3a; box-shadow:0 5px 0 #0a2418; }
-  #ui.hidden { display:none; }
+  #blood { position:absolute; inset:0; pointer-events:none; opacity:0; box-shadow: inset 0 0 140px 50px rgba(193,18,31,.95); transition:opacity .15s; z-index:4; }
+  #fade { position:absolute; inset:0; pointer-events:none; background:#000; opacity:0; transition:opacity .6s; z-index:4; }
+  #fade.on { opacity:1; }
+  #loading { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--ink); font-family:'Special Elite'; z-index:6; background:#000; }
+  #loading.hidden { display:none; }
+  #bar { width:220px; height:4px; background:#1a1a1a; } #bar i { display:block; height:100%; width:0; background:var(--blood); transition:width .2s; }
+  #crosshair { position:absolute; left:50%; top:50%; width:5px; height:5px; margin:-2.5px; border-radius:50%; background:rgba(255,255,255,.45); z-index:2; pointer-events:none; }
+  #walkhint { position:absolute; left:50%; top:72%; transform:translateX(-50%); color:rgba(255,255,255,.55); font-size:12px; letter-spacing:1px; z-index:2; pointer-events:none; text-shadow:0 1px 3px #000; transition:opacity 1s; }
+  #walkhint.hidden { opacity:0; }
 </style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }</script>
 </head>
 <body>
-<div id="wrap"><div id="game">
-  <canvas id="c" width="450" height="800"></canvas>
-  <div id="blood"></div><div id="flash"></div>
+<div id="game">
+  <canvas id="c"></canvas>
+  <div id="fade"></div>
+  <div id="blood"></div>
+  <div id="loading" class="hidden"><div>the branch is loading…</div><div id="bar"><i></i></div><div class="small" id="loadNote">first visit downloads ~5 MB</div></div>
 
   <div id="ui" class="hidden">
+    <div id="crosshair"></div>
+    <div id="walkhint">hold to walk · drag to look · tap to inspect</div>
     <div id="hud"><span class="n" id="hudNight"></span><span class="t" id="hudTime"></span><span id="hudPass"></span></div>
-    <div id="lore" class="hint">Tap anything in the corridor to look closer. Then decide.</div>
-    <div id="acts"><button class="back" id="btnBack">← Something's wrong. Turn back.</button><button class="fwd" id="btnFwd">All normal. Go on →</button></div>
+    <div id="lore" class="hint">Look at everything. Then decide.</div>
+    <div id="acts"><button class="back" id="btnBack">← Something's wrong. Turn back.</button><button class="fwd" id="btnFwd">All normal. Walk to the exit →</button></div>
   </div>
 
-  <!-- START -->
   <div id="start" class="overlay">
     <h1>Weekend Nightmare<small>GOKU'S WEDDING DASH</small></h1>
     <p>A slow horror-comedy about a bank manager, a wedding on Sunday, and a phone that does not know what a weekend is.</p>
-    <p class="small">You will walk the same corridor many times. Look at everything. If anything is wrong — <b>turn back</b>. If it is a normal night at the branch — <b>go on</b>. Eight right calls and you reach the mantapa. One wrong call and it's Friday night again.</p>
+    <p class="small">You walk the same hall, night after night. Hold to walk, drag to look, tap to inspect. If anything is wrong — walk <b>back</b> to the door behind you. If it's a normal night — walk to the <b>exit</b>. Eight right calls and you reach the mantapa. One wrong call and it's Friday night again.</p>
     <div>
       <label class="pill"><input type="checkbox" id="snd" checked> 🔊 Sound</label>
-      <label class="pill"><input type="checkbox" id="voice"> 🗣️ Read story aloud</label>
-      <label class="pill"><input type="checkbox" id="kn"> ಕನ್ನಡ phone</label>
+      <label class="pill"><input type="checkbox" id="voice"> 🗣️ Read aloud</label>
+      <label class="pill"><input type="checkbox" id="hq"> ✨ Cinematic (reflections, shadows)</label>
     </div>
     <h3>ROAST MODE (OPTIONAL)</h3>
     <p class="small">Name the three who got away. Stays on this phone only — never uploaded, never in the code.</p>
@@ -84,10 +93,9 @@
     </div>
     <div id="lbStart" class="lb"></div>
     <button id="play">Begin: Friday, 11:58 PM</button>
-    <p class="small">Open source · add your own anomalies on GitHub</p>
+    <p class="small">Headphones recommended · open source on GitHub<br>3D: three.js · head scan by Lee Perry-Smith (CC BY 3.0) · characters via Mixamo</p>
   </div>
 
-  <!-- STORY CARD -->
   <div id="card" class="overlay hidden">
     <div class="tag" id="cardTag"></div>
     <h2 id="cardTitle"></h2>
@@ -95,7 +103,6 @@
     <button id="cardBtn">Continue</button>
   </div>
 
-  <!-- END -->
   <div id="over" class="overlay hidden">
     <h2 id="overTitle"></h2>
     <div class="story" id="overText"></div>
@@ -104,352 +111,7 @@
     <div id="lbOver" class="lb"></div>
     <button id="again">Walk again</button>
   </div>
-</div></div>
-
-<script>
-(() => {
-'use strict';
-const $ = id => document.getElementById(id);
-const cv = $('c'), ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
-const opt = { snd:true, voice:false, kn:false };
-['snd','voice','kn'].forEach(k => $(k).onchange = e => opt[k] = e.target.checked);
-
-// ================= NAMES (roast mode, local only) =================
-const DEF = ['The one from college', 'The one from the café', 'The one who waited'];
-const G = () => [1,2,3].map(i => ($('g'+i).value.trim() || DEF[i-1]));
-try { [1,2,3].forEach(i => $('g'+i).value = localStorage.getItem('gwd_g'+i) || ''); } catch(e){}
-[1,2,3].forEach(i => $('g'+i).oninput = () => { try{ localStorage.setItem('gwd_g'+i, $('g'+i).value); }catch(e){} });
-
-// ================= STORY =================
-// Night labels: 8 passes from Friday night to Sunday muhurtha.
-const TIMES = ['Fri 11:58 PM','Sat 12:40 AM','Sat 1:30 AM','Sat 3:15 AM','Sat 5:00 AM','Sat 11:00 PM','Sun 2:00 AM','Sun 5:45 AM','Sun 6:30 AM'];
-const STORY = (g) => [
-  { tag:'PROLOGUE', title:'The man who always picks up', text:
-`This is <b>Goku</b>.
-
-Engineer by degree, banker by accident. He joined a bank because it was "stable". He became a <b>branch manager</b> because he was the only one who answered every call.
-
-That is the problem. He answers <i>every</i> call.
-
-On Sunday morning, at 6:30, there is a <b>muhurtha</b>. A mantapa. A thaali. Four hundred relatives. A purohit who has done four thousand weddings and will not wait for a four-thousand-and-first.
-
-It is Friday, 11:58 PM. Goku is still in the branch.
-
-He just has to walk out.` },
-  { tag:'NIGHT 1', title:'The corridor', text:
-`The branch after hours is a corridor: his cabin on the left, the customer chairs, the noticeboard with <b>TARGET 110%</b>, the locker room, the ATM lobby, and the exit.
-
-He has walked it a thousand times.
-
-Tonight it feels like the corridor is walking him.
-
-<b>Rule of the branch:</b> if anything is wrong, turn back. If it's just a normal night, go on. He has eight walks to make before the muhurtha.` },
-  { tag:'NIGHT 1 · LATER', title:'The Manager', text:
-`About the <b>Manager</b>.
-
-Not Goku. Goku's manager. The Regional one. The one who says "just 2 hours" on a Saturday and means the whole Saturday. The one who said, when Goku announced the wedding: <i>"Good, good. Which weekend?"</i>
-
-Nobody has seen him leave the building. Ever.
-
-His cabin door is at the end of the corridor. It is always closed. Keep it that way.` },
-  { tag:'NIGHT 2', title:'The customers', text:
-`About the <b>customers</b>.
-
-A manager's customers don't take tokens. They take <i>time</i>. The NPA uncle who says "next month pakka". The depositor who wants 0.5% more or he walks. The one who just wants <b>one signature</b>, sir, one only, sir.
-
-They come at 9. They are still there at 6. Some of them, Goku suspects, never left the chairs at all.` },
-  { tag:'NIGHT 2 · LATER', title:g[0], text:
-`About <b>${g[0]}</b>.
-
-College. Hostel mess, 2 AM Maggi, the walk to the beach. She said: "You're going to be a different person once you have a job."
-
-He said he wouldn't.
-
-He took a call during their last dinner. "Sir, net banking not working." It was not even his customer.
-
-She is in the branch tonight. Don't look at the water cooler for too long.` },
-  { tag:'NIGHT 3', title:g[1], text:
-`About <b>${g[1]}</b>.
-
-Second bank. The café opposite the branch. She made the coffee; he made the excuses. Three months of "one day I'll come at 4 PM and we'll just sit".
-
-He came at 4 PM once. The phone rang. She watched him take it.
-
-The café closed last year. She didn't. She's just… waiting, somewhere between the lockers.` },
-  { tag:'NIGHT 3 · LATER', title:g[2], text:
-`About <b>${g[2]}</b>.
-
-The one the families arranged. The one who said, "I know bank timings. I'll wait."
-
-She waited. Through the audit, the transfer, the year-end, the quarter-end, the month-end, the week-end that was never an end.
-
-She is the one at the mantapa on Sunday. She is <i>still</i> waiting. That's the whole game.` },
-  { tag:'SUNDAY', title:'The last walk', text:
-`Sunday, 5:45 AM. Jasmine, nadaswara, a purohit checking his watch.
-
-The branch is between Goku and the mantapa. It has always been.
-
-Phone in pocket. Switched off — he thinks. The corridor is quiet in a way that corridors are not.
-
-One more walk.` },
-  { tag:'MUHURTHA', title:'6:30 AM', text:`` },
-];
-
-// ================= THE CORRIDOR (props) =================
-// Each prop: position, draw(normal|anomaly), lore for both states.
-// Anomalies change one prop. Players tap props to read lore — that's where the story soaks in.
-const P = {};
-const PROPS = [
-  { id:'clock', x:225, y:70, r:34, lore:'Branch clock. It has said the wrong time since 2019. Nobody fixed it; the customers never leave anyway.',
-    draw:(a)=>{ ctx.fillStyle='#e8e6d0'; ctx.beginPath(); ctx.arc(225,70,30,0,7); ctx.fill(); ctx.strokeStyle='#222'; ctx.lineWidth=2;
-      const t=a==='clock_back'? -S.t*2 : (a==='clock_nine'? 0 : S.t*0.2); const hh=a==='clock_nine'? -Math.PI/2+Math.PI*1.5 : t/12;
-      ctx.beginPath(); ctx.moveTo(225,70); ctx.lineTo(225+16*Math.cos(hh),70+16*Math.sin(hh)); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(225,70); ctx.lineTo(225+24*Math.cos(t),70+24*Math.sin(t)); ctx.stroke(); } },
-  { id:'calendar', x:120, y:120, w:70, h:80, lore:'Wall calendar from an insurance partner. Sunday is circled in red marker: MUHURTHA 6:30. Goku circled it himself. Twice.',
-    draw:(a)=>{ ctx.fillStyle='#fff'; ctx.fillRect(85,80,70,80); ctx.fillStyle='#c1121f'; ctx.fillRect(85,80,70,16); ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center'; ctx.fillText('NOVEMBER',120,92);
-      ctx.fillStyle='#222'; ctx.font='9px sans-serif'; for(let i=0;i<28;i++){ ctx.fillText(i+1, 92+(i%7)*10, 108+Math.floor(i/7)*12); }
-      if(a==='cal_working'){ ctx.fillStyle='#c1121f'; ctx.font='bold 9px sans-serif'; ctx.fillText('SUN: WORKING',120,155); } else { ctx.strokeStyle='#c1121f'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(152,132,7,0,7); ctx.stroke(); } } },
-  { id:'portrait', x:330, y:120, w:70, h:80, lore:'Portrait of the Chairman. Watches over the branch. Has never once called on a weekend. Goku respects him for that.',
-    draw:(a)=>{ ctx.fillStyle='#5a3a10'; ctx.fillRect(292,78,76,86); ctx.fillStyle='#d8d2c0'; ctx.fillRect(298,84,64,74); ctx.font='44px serif'; ctx.textAlign='center'; ctx.fillText(a==='portrait_mgr'?'👹':'👴🏽',330,135);
-      if(a==='portrait_mgr'){ ctx.fillStyle='#c1121f'; ctx.font='bold 8px sans-serif'; ctx.fillText('"WHICH WEEKEND?"',330,156); } } },
-  { id:'notice', x:120, y:235, w:110, h:70, lore:'Noticeboard. TARGET 110%. CASA drive. "Smile, you are the face of the bank." Someone has drawn a small, tired face under it.',
-    draw:(a)=>{ ctx.fillStyle='#4a3b2a'; ctx.fillRect(62,200,116,74); ctx.fillStyle='#f3e9c6'; ctx.fillRect(70,208,100,58); ctx.fillStyle='#222'; ctx.textAlign='center'; ctx.font='bold 11px sans-serif';
-      ctx.fillText(a==='notice_goku'?'TARGET:':'TARGET',120,226); ctx.fillStyle=a==='notice_goku'?'#c1121f':'#222'; ctx.font='bold 16px sans-serif'; ctx.fillText(a==='notice_goku'?'GOKU':'110%',120,246); ctx.fillStyle='#222'; ctx.font='8px sans-serif'; ctx.fillText(a==='notice_goku'?'before the muhurtha':'CASA drive · smile',120,260); } },
-  { id:'npa', x:330, y:235, w:110, h:70, lore:'NPA board. Overdue accounts, written in red by hand because the printer gave up in 2021. The uncle on line 2 says "next month pakka" every month.',
-    draw:(a)=>{ ctx.fillStyle='#1b1b1b'; ctx.fillRect(272,200,116,74); ctx.fillStyle='#c1121f'; ctx.font='bold 10px sans-serif'; ctx.textAlign='left';
-      const rows=a==='npa_goku'?['NPA  OVERDUE','Goku — wedding','Goku — sleep','Goku — Sunday']:['NPA  OVERDUE','Acct 221 — 3 mo','Acct 118 — 7 mo','Acct 404 — "pakka"'];
-      rows.forEach((r,i)=>{ ctx.fillStyle=i?'#ff6b6b':'#fff'; ctx.fillText(r,280,216+i*15); }); } },
-  { id:'cabin', x:60, y:400, w:90, h:170, lore:'The Manager\'s cabin. Door closed. Light off. Goku has never seen him leave. He has also never seen him arrive.',
-    draw:(a)=>{ ctx.fillStyle='#3b2412'; ctx.fillRect(18,320,90,180); ctx.fillStyle='#6b4a2a'; ctx.fillRect(26,328,74,164); ctx.fillStyle='#d4af37'; ctx.beginPath(); ctx.arc(90,412,4,0,7); ctx.fill();
-      ctx.fillStyle='#f3e9c6'; ctx.fillRect(40,340,46,14); ctx.fillStyle='#222'; ctx.font='bold 7px sans-serif'; ctx.textAlign='center'; ctx.fillText('MANAGER',63,350);
-      if(a==='cabin_eyes'){ ctx.fillStyle='#000'; ctx.fillRect(100,328,8,164); ctx.fillStyle='#ff2a2a'; ctx.beginPath(); ctx.arc(104,400,2,0,7); ctx.arc(104,410,2,0,7); ctx.fill(); }
-      if(a==='cabin_shoes'){ ctx.font='14px serif'; for(let i=0;i<7;i++) ctx.fillText('👞', 30+i*11, 512); } } },
-  { id:'chairs', x:225, y:470, w:120, h:60, lore:'Customer chairs. Three. Bolted to the floor in 2015 after an incident. Everyone sits facing the counter, waiting for "one signature".',
-    draw:(a)=>{ for(let i=0;i<3;i++){ const x=175+i*50; ctx.fillStyle='#2f3a4a'; ctx.fillRect(x-18,450,36,8); ctx.fillRect(x-18,458,6,24); ctx.fillRect(x+12,458,6,24); ctx.fillRect(x-18,430,36,22);
-        const who=a==='chairs_face'?'🧟':(a==='chairs_noface'&&i===1?'🫥':(i===1?'🧓🏽':'')); if(who){ ctx.font='26px serif'; ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.fillText(who,x,a==='chairs_face'?475:445); } }
-      if(a==='chairs_face'){ ctx.fillStyle='#ff6b6b'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center'; ctx.fillText('they are all looking at you',225,500); }
-      if(a==='chairs_noface'){ ctx.fillStyle='#fff'; ctx.font='bold 8px sans-serif'; ctx.textAlign='center'; ctx.fillText('"one signature, sir"',225,500); } } },
-  { id:'desk', x:225, y:380, w:120, h:50, lore:'Goku\'s desk. Laptop, a half-signed file, the desk phone. The desk phone is for customers. The mobile is for the Manager. Both are for weekends.',
-    draw:(a)=>{ ctx.fillStyle='#5a3a1a'; ctx.fillRect(160,372,130,10); ctx.fillRect(166,382,8,40); ctx.fillRect(276,382,8,40); ctx.fillStyle='#222'; ctx.fillRect(176,350,50,22); ctx.fillStyle='#9be7ff'; ctx.fillRect(179,353,44,16);
-      ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('📱',262,364);
-      if(a==='phone_glow'){ ctx.shadowColor='#ff2a3a'; ctx.shadowBlur=20; ctx.fillText('📱',262,364); ctx.shadowBlur=0; ctx.fillStyle='#ff6b6b'; ctx.font='bold 9px sans-serif'; ctx.fillText('47 missed · Manager',262,345); }
-      if(a==='desk_thaali'){ ctx.fillText('📿',200,364); } } },
-  { id:'cooler', x:390, y:400, w:50, h:120, lore:'Water cooler. Hasn\'t been refilled since the AMC guy stopped answering Goku\'s calls. Poetic, really.',
-    draw:(a)=>{ ctx.fillStyle='#cde'; ctx.fillRect(372,380,36,60); ctx.fillStyle=a==='cooler_red'?'#8b0000':'#79c7ff'; ctx.fillRect(376,384,28,52); ctx.fillStyle='#777'; ctx.fillRect(366,440,48,70);
-      if(a==='cooler_ghost1'){ ctx.font='34px serif'; ctx.textAlign='center'; ctx.globalAlpha=.55; ctx.fillText('👩🏽‍🎓',390,375); ctx.globalAlpha=1; } } },
-  { id:'plant', x:390, y:300, w:50, h:80, lore:'Money plant. Gift from a customer whose loan got sanctioned. The only thing in the branch that grew this year.',
-    draw:(a)=>{ ctx.fillStyle='#7a4a2a'; ctx.fillRect(378,340,24,24); ctx.font=a==='plant_grow'?'70px serif':'30px serif'; ctx.textAlign='center'; ctx.fillText('🌿',390,a==='plant_grow'?330:338); } },
-  { id:'locker', x:60, y:230, w:60, h:70, lore:'Locker room door. Locker Aunty has function today. Locker Aunty always has function today.',
-    draw:(a)=>{ ctx.fillStyle='#3b3b3b'; ctx.fillRect(14,196,60,100); ctx.fillStyle='#555'; ctx.fillRect(20,202,48,88); ctx.fillStyle='#d4af37'; ctx.fillRect(58,246,4,8);
-      ctx.fillStyle='#ddd'; ctx.font='bold 7px sans-serif'; ctx.textAlign='center'; ctx.fillText('LOCKERS',44,214);
-      if(a==='locker_ghost2'){ ctx.font='30px serif'; ctx.globalAlpha=.55; ctx.fillText('☕',44,262); ctx.globalAlpha=1; } } },
-  { id:'exit', x:225, y:545, w:100, h:40, lore:'The EXIT. Green sign. Beyond it: the road, the auto, the mantapa. It has never looked this far away.',
-    draw:(a)=>{ ctx.fillStyle='#0b3b1f'; ctx.fillRect(185,512,80,28); ctx.fillStyle=a==='exit_entry'?'#ff4d4d':'#4dff88'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.fillText(a==='exit_entry'?'ENTRY':'EXIT',225,532);
-      ctx.fillStyle='#223'; ctx.fillRect(170,542,110,70); ctx.fillStyle=a==='exit_door2'?'#223':'#101828'; ctx.fillRect(176,548,98,60); if(a==='exit_door2'){ ctx.fillStyle='#101828'; ctx.fillRect(176,548,46,60); ctx.fillRect(228,548,46,60); } } },
-  { id:'atm', x:390, y:560, w:60, h:110, lore:'ATM lobby. Out of cash on the 1st, out of order on the 2nd. On the 3rd it dispenses receipts to nobody.',
-    draw:(a)=>{ ctx.fillStyle='#2a3a6a'; ctx.fillRect(358,525,64,85); ctx.fillStyle='#9be7ff'; ctx.fillRect(366,533,48,26); ctx.fillStyle='#111'; ctx.fillRect(366,568,48,8);
-      if(a==='atm_cards'){ ctx.font='16px serif'; ctx.textAlign='center'; for(let i=0;i<3;i++) ctx.fillText('💌',390,588+i*10); } } },
-  { id:'cctv', x:60, y:560, w:70, h:60, lore:'CCTV monitor. Shows the corridor. Shows the chairs. Shows a man who should have gone home three hours ago.',
-    draw:(a)=>{ ctx.fillStyle='#222'; ctx.fillRect(24,535,76,56); ctx.fillStyle='#1a2a1a'; ctx.fillRect(28,539,68,48); ctx.fillStyle='#4dff88'; ctx.font='8px monospace'; ctx.textAlign='left'; ctx.fillText('CAM 2 · CORRIDOR',31,549);
-      ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText(a==='cctv_behind'?'🧍🏽‍♂️':'🪑',62,575); if(a==='cctv_behind'){ ctx.fillStyle='#ff6b6b'; ctx.font='bold 7px sans-serif'; ctx.fillText('LIVE · behind you',62,586); } } },
-  { id:'mantapa', x:225, y:580, w:120, h:60, lore:'Faint, at the end of the corridor, past the exit: marigold, jasmine, a drum. The mantapa. She is waiting there.',
-    draw:(a)=>{ ctx.globalAlpha=0.22+0.06*Math.sin(S.t*2); ctx.font='34px serif'; ctx.textAlign='center'; ctx.fillText('🛕',225,582); if(a==='mantapa_ghost3'){ ctx.globalAlpha=.65; ctx.font='26px serif'; ctx.fillText('👰🏽',225,598); } ctx.globalAlpha=1; } },
-];
-PROPS.forEach(p=>P[p.id]=p);
-
-// ================= ANOMALIES =================
-// id → { prop, lore (what you see when you inspect), reveal (told after a wrong call), ghost? }
-// Contributors: add one here + a draw branch in the prop above. Keep them creepy-funny.
-const ANOMS = (g) => [
-  { id:'clock_back', prop:'clock', lore:'The clock is running backwards. Fast. Towards Friday. Towards every Friday.', reveal:'The clock was running backwards.' },
-  { id:'clock_nine', prop:'clock', lore:'The clock says 9:00 AM. Branch opening time. It is the middle of the night.', reveal:'The clock showed 9 AM — opening time — at night.' },
-  { id:'cal_working', prop:'calendar', lore:'The red circle is gone. In its place, in the Manager\'s handwriting: SUN: WORKING.', reveal:'The calendar marked Sunday as a working day.' },
-  { id:'portrait_mgr', prop:'portrait', lore:'That is not the Chairman. That is the Manager. He is smiling. He is asking which weekend.', reveal:'The Chairman\'s portrait had the Manager\'s face.' },
-  { id:'notice_goku', prop:'notice', lore:'TARGET: GOKU. Before the muhurtha. Someone has pinned his wedding card underneath.', reveal:'The noticeboard target was GOKU.' },
-  { id:'npa_goku', prop:'npa', lore:'The overdue list has three new entries. All of them are him.', reveal:'The NPA board listed Goku — wedding, sleep, Sunday — as overdue.' },
-  { id:'cabin_eyes', prop:'cabin', lore:'The cabin door is open two inches. Something red is blinking in the gap, at eye height, patiently.', reveal:'The Manager\'s cabin door was ajar. He was watching.' },
-  { id:'cabin_shoes', prop:'cabin', lore:'Seven pairs of shoes outside the Manager\'s cabin. Identical. Nobody is supposed to be inside.', reveal:'Seven pairs of shoes outside an empty cabin.' },
-  { id:'chairs_face', prop:'chairs', lore:'All three chairs are occupied. All three have turned around. They are looking at Goku. They want one signature.', reveal:'The customers had turned to face you.' },
-  { id:'chairs_noface', prop:'chairs', lore:'The uncle in the middle chair has no face. He is holding a file. He says "one signature, sir" without a mouth.', reveal:'The customer in the middle chair had no face.' },
-  { id:'phone_glow', prop:'desk', lore:'The phone is switched off. It is also glowing red. 47 missed calls, all from Manager, all from the last four minutes.', reveal:'The switched-off phone was glowing with 47 missed calls.' },
-  { id:'desk_thaali', prop:'desk', lore:'There is a thaali on his desk. It is not Sunday. It is not his to have yet. It is warm.', reveal:'There was a thaali on the desk, two days early.' },
-  { id:'cooler_red', prop:'cooler', lore:'The cooler has been refilled. Not with water.', reveal:'The water cooler was full of something red.' },
-  { id:'cooler_ghost1', prop:'cooler', lore:`${g[0]} is standing at the cooler, the way she stood at the mess counter in college. She says: "You said you wouldn't change." Her voice is a phone ringing.`, reveal:`${g[0]} was at the water cooler.`, ghost:0 },
-  { id:'plant_grow', prop:'plant', lore:'The money plant has reached the ceiling. It is reaching for the fluorescent light. It has had a better year than Goku.', reveal:'The money plant had grown into the ceiling.' },
-  { id:'locker_ghost2', prop:'locker', lore:`A coffee cup floats outside the locker room, still steaming. ${g[1]} made it at 4 PM, a year ago. She asks: "Are you coming at 4?" He took the call.`, reveal:`${g[1]}'s coffee was waiting at the lockers.`, ghost:1 },
-  { id:'exit_entry', prop:'exit', lore:'The sign over the door says ENTRY. In red. The corridor, it turns out, only goes one way.', reveal:'The EXIT sign said ENTRY.' },
-  { id:'exit_door2', prop:'exit', lore:'There are two exit doors now. There has only ever been one. One of them is breathing.', reveal:'There were two exit doors.' },
-  { id:'atm_cards', prop:'atm', lore:'The ATM is dispensing wedding invitations. Hundreds. All with Sunday\'s date crossed out.', reveal:'The ATM was dispensing wedding cards.' },
-  { id:'cctv_behind', prop:'cctv', lore:'CAM 2 shows the corridor, live. It shows Goku from behind, looking at CAM 2. Something is standing behind him on the monitor. Don\'t turn around; just turn back.', reveal:'The CCTV showed something behind you.' },
-  { id:'mantapa_ghost3', prop:'mantapa', lore:`At the far end, past the exit, ${g[2]} is standing in the mantapa, alone, in full bridal wear, at 1 AM. She has been standing there since the engagement. She is very patient. That is the scary part.`, reveal:`${g[2]} was already at the mantapa, waiting. Too early. Far too patient.`, ghost:2 },
-];
-
-// ================= AUDIO =================
-let AC=null;
-const audio=()=>{ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==='suspended') AC.resume().catch(()=>{}); return AC; };
-function tone(f,t,type='sine',vol=0.2,slide=0){ if(!opt.snd) return; const ac=audio(); if(!ac) return; const o=ac.createOscillator(),g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f,ac.currentTime); if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(20,f+slide),ac.currentTime+t); g.gain.setValueAtTime(vol,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+t); }
-function noise(t,vol=0.3,fq=400){ if(!opt.snd) return; const ac=audio(); if(!ac) return; const b=ac.createBuffer(1,ac.sampleRate*t,ac.sampleRate),d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); const s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=fq; s.buffer=b; g.gain.value=vol; s.connect(f).connect(g).connect(ac.destination); s.start(); }
-const sfx={
-  step:()=>{ noise(0.08,0.12,900); },
-  tap:()=>{ tone(520,0.05,'triangle',0.08); },
-  ring:()=>{ [0,0.18,0.36].forEach(d=>setTimeout(()=>{tone(880,0.12,'square',0.07);tone(1175,0.12,'square',0.05);},d*1000)); },
-  wrong:()=>{ tone(90,0.9,'sawtooth',0.4,-60); noise(0.8,0.5,300); },
-  right:()=>{ tone(330,0.25,'triangle',0.12); setTimeout(()=>tone(440,0.3,'triangle',0.12),120); },
-  thunder:()=>{ noise(1.6,0.5); tone(45,1.4,'sine',0.35); },
-  win:()=>{ [392,523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.45,'triangle',0.2),i*130)); },
-  laugh:()=>{ [300,250,200,170].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'sawtooth',0.15,-40),i*140)); },
-};
-let drone=null;
-function startDrone(n){ stopDrone(); if(!opt.snd) return; const ac=audio(); if(!ac) return; const o=ac.createOscillator(),o2=ac.createOscillator(),buzz=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter(); o.type='sawtooth'; o.frequency.value=36+n*2; o2.type='sine'; o2.frequency.value=36.6+n*2; buzz.type='square'; buzz.frequency.value=100; const bg=ac.createGain(); bg.gain.value=0.006; g.gain.value=0.04+n*0.006; f.type='lowpass'; f.frequency.value=150; o.connect(f); o2.connect(f); f.connect(g).connect(ac.destination); buzz.connect(bg).connect(ac.destination); o.start(); o2.start(); buzz.start(); drone={o,o2,buzz}; }
-function stopDrone(){ if(drone){ try{drone.o.stop();drone.o2.stop();drone.buzz.stop();}catch(e){} drone=null; } }
-function say(text){ if(!opt.voice||!('speechSynthesis' in window)) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g,'')); u.lang='en-IN'; u.rate=0.95; u.pitch=0.75; speechSynthesis.speak(u); }catch(e){} }
-
-// ================= LEADERBOARD =================
-const API = location.protocol.startsWith('http') ? '/api/scores' : null;
-let lastPosted=null;
-const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function loadLB(){ if(!API) return null; try{ const r=await fetch(API,{cache:'no-store'}); return r.ok? await r.json():null; }catch(e){ return null; } }
-function renderLB(el,rows){ if(!rows){ el.innerHTML=''; return; } if(!rows.length){ el.innerHTML='<h4>LEADERBOARD</h4><p class="small">Nobody has reached the mantapa yet.</p>'; return; }
-  el.innerHTML='<h4>LEADERBOARD · TOP 10</h4><table>'+rows.slice(0,10).map((r,i)=>`<tr class="${r.id===lastPosted?'me':''}"><td>${i+1}</td><td>${esc(r.name)} ${r.won?'💍':'📱'}</td><td>${r.score}</td></tr>`).join('')+'</table>'; }
-async function refreshLB(){ const rows=await loadLB(); renderLB($('lbStart'),rows); renderLB($('lbOver'),rows); }
-async function postScore(){ if(!API) return; const name=$('pname').value.trim(); if(!name){ $('pname').focus(); return; } try{ localStorage.setItem('gwd_name',name); }catch(e){}
-  $('send').disabled=true; $('send').textContent='…';
-  try{ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,char:'goku',score:S.score,level:Math.min(2,Math.floor(S.pass/3)),won:!!S.won})}); const j=await r.json(); lastPosted=j.id||null; $('submit').classList.add('hidden'); sfx.right(); }
-  catch(e){ $('send').textContent='Retry'; $('send').disabled=false; return; } refreshLB(); }
-$('send').onclick=postScore; $('pname').addEventListener('keydown',e=>{ if(e.key==='Enter') postScore(); });
-try{ $('pname').value=localStorage.getItem('gwd_name')||''; }catch(e){}
-refreshLB();
-
-// ================= STATE =================
-let S={ t:0, pass:0, anom:null, walks:0, wrong:0, score:0, locked:false, over:true, won:false, flicker:0, seen:new Set(), ghostsMet:new Set(), inspected:0, startT:0 };
-let g=G(), story=STORY(g), anoms=ANOMS(g);
-let raf, last=0;
-
-function pickAnomaly(){
-  // ~55% nights have an anomaly; passes 1,4,6 always do (story ghosts), pass 0 never does (tutorial).
-  if(S.pass===0) return null;
-  const forced = {1:'cabin_eyes', 3:'cooler_ghost1', 5:'locker_ghost2', 7:'mantapa_ghost3'}[S.pass];
-  if(forced && !S.seen.has(forced)) return anoms.find(a=>a.id===forced);
-  if(Math.random()<0.45) return null;
-  const pool = anoms.filter(a=>!S.seen.has(a.id)); const src = pool.length? pool : anoms;
-  return src[Math.floor(Math.random()*src.length)];
-}
-function newWalk(){
-  S.anom=pickAnomaly(); S.walks++; S.locked=false; S.inspected=0; S.t=0;
-  if(S.anom){ S.seen.add(S.anom.id); if(S.anom.ghost!==undefined) S.ghostsMet.add(S.anom.ghost); }
-  $('hudNight').textContent = S.pass<5?'NIGHT '+(S.pass<2?1:2):'NIGHT 3'; $('hudTime').textContent=TIMES[S.pass]; $('hudPass').textContent='walk '+(S.pass+1)+'/8';
-  setLore(S.pass===0?'First walk. Nothing is wrong tonight — look around, tap things, learn the corridor. Then go on.':'Tap anything to look closer. Then decide.', true);
-  if(S.anom && S.anom.prop==='desk' && S.anom.id==='phone_glow') setTimeout(()=>sfx.ring(),800);
-  if(Math.random()<0.3) setTimeout(()=>{ sfx.thunder(); flash(); }, 1500+Math.random()*4000);
-}
-function setLore(html,hint){ const el=$('lore'); el.innerHTML=html; el.className=hint?'hint':''; }
-function flash(){ $('flash').style.opacity=.7; setTimeout(()=>$('flash').style.opacity=0,80); setTimeout(()=>{ $('flash').style.opacity=.4; setTimeout(()=>$('flash').style.opacity=0,60); },160); }
-
-// ================= DRAW =================
-function draw(){
-  S.t+=1/60;
-  S.flicker = Math.random()<0.02 ? 0.3+Math.random()*0.4 : Math.max(0,S.flicker-0.05);
-  ctx.clearRect(0,0,W,H);
-  // corridor perspective
-  const grd=ctx.createLinearGradient(0,0,0,H); grd.addColorStop(0,'#1a0f22'); grd.addColorStop(1,'#0a0510'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#2a1d33'; ctx.fillRect(0,0,W,300); // back wall
-  ctx.fillStyle='#17101e'; ctx.beginPath(); ctx.moveTo(0,300); ctx.lineTo(W,300); ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.fill(); // floor
-  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1; for(let i=0;i<9;i++){ ctx.beginPath(); ctx.moveTo(225+(i-4)*22,300); ctx.lineTo(225+(i-4)*120,H); ctx.stroke(); }
-  for(let y=320;y<H;y+=60){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  // tube light
-  ctx.fillStyle='rgba(220,240,255,'+(0.9-S.flicker)+')'; ctx.fillRect(150,14,150,6);
-  // props (mantapa first: it's far)
-  const order=['clock','calendar','portrait','locker','notice','npa','plant','cabin','desk','chairs','cooler','exit','atm','cctv','mantapa'];
-  for(const id of order){ ctx.save(); P[id].draw(S.anom&&S.anom.prop===id?S.anom.id:null); ctx.restore(); }
-  // Goku's shadow (first person-ish: his hands/phone at bottom)
-  
-  // vignette + flicker
-  const v=ctx.createRadialGradient(225,520,120,225,420,620); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.82)'); ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
-  if(S.flicker>0){ ctx.fillStyle='rgba(0,0,0,'+S.flicker*0.7+')'; ctx.fillRect(0,0,W,H); }
-  if(!S.over) raf=requestAnimationFrame(draw);
-}
-
-// ================= INPUT =================
-cv.addEventListener('pointerdown',e=>{
-  if(S.over||S.locked) return;
-  const r=cv.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width*W, y=(e.clientY-r.top)/r.height*H;
-  let best=null,bd=1e9; for(const p of PROPS){ const d=Math.hypot(p.x-x,p.y-y); if(d<bd&&d<(p.r||70)){ bd=d; best=p; } }
-  if(!best) return; sfx.tap(); S.inspected++;
-  const isA=S.anom&&S.anom.prop===best.id;
-  setLore('<b>'+best.id.toUpperCase()+'</b> — '+(isA?S.anom.lore:best.lore), false);
-  if(isA && S.anom.ghost!==undefined) tone(220,1.2,'sine',0.08,-60);
-});
-$('btnBack').onclick=()=>decide(true);
-$('btnFwd').onclick=()=>decide(false);
-
-function decide(saidWrong){
-  if(S.over||S.locked) return; S.locked=true;
-  const wasWrong=!!S.anom;
-  if(saidWrong===wasWrong){
-    // correct
-    S.score += 100 + (S.inspected>0?20:0) + (wasWrong?50:0); sfx.right(); S.pass++;
-    walkTransition(()=>{ if(S.pass>=8) end(true); else storyCard(S.pass, ()=>{ newWalk(); }); });
-  } else {
-    S.wrong++; S.score=Math.max(0,S.score-40); sfx.wrong(); $('blood').style.opacity=1; setTimeout(()=>$('blood').style.opacity=0,500);
-    const msg = wasWrong ? `<b>Wrong.</b> ${S.anom.reveal} You walked straight past it.` : `<b>Wrong.</b> It was a normal night. Turning back from a normal night means the night starts over.`;
-    setTimeout(()=>{ $('cardTag').textContent='SENT BACK'; $('cardTitle').textContent='Friday, 11:58 PM. Again.'; $('cardText').innerHTML=msg+'\n\nThe corridor resets. The phone is in his pocket. The muhurtha is still Sunday.';
-      $('cardBtn').textContent='Walk again'; $('cardBtn').onclick=()=>{ $('card').classList.add('hidden'); S.pass=0; newWalk(); };
-      $('card').classList.remove('hidden'); say(msg); }, 700);
-  }
-}
-function walkTransition(cb){ let i=0; const iv=setInterval(()=>{ sfx.step(); if(++i>3){ clearInterval(iv); cb(); } },260); }
-
-function storyCard(i, cb){
-  const s=story[i]; if(!s||!s.text){ cb(); return; }
-  $('cardTag').textContent=s.tag; $('cardTitle').textContent=s.title; $('card').classList.remove('hidden');
-  typewrite($('cardText'), s.text, ()=>{ $('cardBtn').disabled=false; });
-  $('cardBtn').disabled=true; $('cardBtn').textContent='Continue';
-  $('cardBtn').onclick=()=>{ $('card').classList.add('hidden'); cb(); };
-  say(s.text);
-}
-let typer=null;
-function typewrite(el, html, done){
-  if(typer) clearInterval(typer); el.innerHTML=''; let i=0; const txt=html;
-  typer=setInterval(()=>{ // type by char but keep tags whole
-    if(txt[i]==='<'){ const j=txt.indexOf('>',i); i=j+1; } else i++;
-    el.innerHTML=txt.slice(0,i); if(i%3===0&&txt[i-1]!==' ') tone(1200+Math.random()*300,0.02,'square',0.01);
-    if(i>=txt.length){ clearInterval(typer); typer=null; done&&done(); }
-  }, 18);
-  el.onclick=()=>{ if(typer){ clearInterval(typer); typer=null; el.innerHTML=txt; done&&done(); } };
-}
-
-function start(){
-  audio(); g=G(); story=STORY(g); anoms=ANOMS(g);
-  S={ t:0, pass:0, anom:null, walks:0, wrong:0, score:0, locked:true, over:false, won:false, flicker:0, seen:new Set(), ghostsMet:new Set(), inspected:0, startT:Date.now() };
-  $('start').classList.add('hidden'); $('over').classList.add('hidden'); $('ui').classList.remove('hidden');
-  startDrone(0); last=0; cancelAnimationFrame(raf); draw();
-  storyCard(0, ()=>{ storyCard(1, ()=>newWalk()); });
-}
-function end(won){
-  S.over=true; S.won=won; stopDrone(); cancelAnimationFrame(raf); $('ui').classList.add('hidden');
-  const mins=Math.round((Date.now()-S.startT)/6000)/10;
-  if(won){ sfx.win(); S.score+=500-Math.min(400,S.wrong*40);
-    $('overTitle').textContent='6:30 AM. The thaali.';
-    typewrite($('overText'), `He walked out. The exit said EXIT. The auto was waiting. The purohit was not, quite, but close enough.
-
-<b>${g[2]}</b> looked up. She had been waiting a long time. She said: "Phone?"
-
-He held it up. Switched off. Properly, this time.
-
-Somewhere in the branch, a cabin door closed on its own. The Manager will call on Monday. Monday is allowed.
-
-<b>Congratulations, Goku.</b>`);
-  } else { sfx.laugh(); $('overTitle').textContent='He picked up.'; typewrite($('overText'),'The muhurtha passed. The branch opened. It is always, somehow, Friday.'); }
-  $('overScore').textContent=`Score ${S.score} · ${S.walks} walks · ${S.wrong} wrong turns · ${mins} min`;
-  if(API&&S.score>0){ $('submit').classList.remove('hidden'); $('send').disabled=false; $('send').textContent='Post'; }
-  $('over').classList.remove('hidden'); refreshLB();
-}
-$('play').onclick=start;
-$('again').onclick=()=>{ $('over').classList.add('hidden'); $('start').classList.remove('hidden'); };
-$('cardBtn').onclick=()=>{};
-// idle preview
-S.over=true; S.t=0; draw();
-})();
-</script>
+</div>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

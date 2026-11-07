@@ -1,27 +1,29 @@
 # Contributing
 
-Everything lives in `index.html` (game) and `server.js` (leaderboard). No build.
+| What | Where |
+|---|---|
+| Story cards, lore, anomaly text | `js/story.js` |
+| The 3D hall, props, anomaly effects (`APPLY` table), `reset()` | `js/scene.js` |
+| Procedural textures (boards, posters, signs, floor, walls) | `js/textures.js` |
+| Sound (all synthesized) | `js/audio.js` |
+| Game flow, controls, post-processing | `js/main.js` |
+| Leaderboard server | `server.js` |
 
-## Add an anomaly (the fun one)
-1. Pick a prop in `PROPS` (clock, calendar, portrait, notice, npa, cabin,
-   chairs, desk, cooler, plant, locker, exit, atm, cctv, mantapa).
-2. In that prop's `draw(a)`, add a branch for your new id, e.g.
-   `if(a==='plant_eyes'){ ... }`.
-3. Add an entry to `ANOMS`:
-   `{ id:'plant_eyes', prop:'plant', lore:'what you see when you tap it', reveal:'one line shown after a wrong call' }`
-4. Test: open `index.html`, play until it appears (or temporarily force it in `pickAnomaly`).
+## Add an anomaly
+1. `js/story.js` → add to `ANOMS`: `{ id, prop, lore, reveal }`. `prop` is the
+   thing the player taps to read the creepy version (see `LORE` keys).
+2. `js/scene.js` → add `id: () => { ... }` to the `APPLY` table, and undo it in
+   `reset()`. Props are plain three.js objects; look at how `cabin_eyes` or
+   `bench_face` do it.
+3. Test with `http://localhost:8080/?anom=your_id`.
 
 ## Add a prop
-Add to `PROPS` with `x,y` (tap centre), a `draw(a)` and `lore`, and put its id
-in the `order` array in `draw()`.
-
-## Story
-`STORY` holds the cards between walks. `TIMES` holds the clock labels.
-`<b>` and `<i>` are allowed; keep each card under ~90 words — people read
-these on phones.
+Build it in `scene.js`, call `reg('yourId', ...meshes)` so it's tappable, add
+`LORE.yourId` in `story.js`, and (optionally) a `propPos` entry for spatial sound.
 
 ## Rules
-- Single file, zero dependencies, works offline.
+- No build step, no npm dependencies at runtime (three.js is vendored).
+- Keep total assets small; compress models with `gltf-transform optimize`.
 - Keep it funny. Keep it PG.
 - No real people's names, phone numbers, or employers in the code or assets.
   Roast-mode names are typed by players and stay in `localStorage`.
