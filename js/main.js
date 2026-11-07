@@ -27,6 +27,11 @@ async function refreshLB() { const rows = await loadLB(); renderLB($('lbStart'),
 async function postScore() { if (!API) return; const name = $('pname').value.trim(); if (!name) { $('pname').focus(); return; } store.set('gwd_name', name); $('send').disabled = true; $('send').textContent = '…'; try { const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, char: 'goku', score: S.score, level: Math.min(2, Math.floor(S.pass / 3)), won: !!S.won }) }); const j = await r.json(); lastPosted = j.id || null; $('submit').classList.add('hidden'); audio.right(); } catch (e) { $('send').textContent = 'Retry'; $('send').disabled = false; return; } refreshLB(); }
 $('send').onclick = postScore; $('pname').addEventListener('keydown', e => { if (e.key === 'Enter') postScore(); }); $('pname').value = store.get('gwd_name', ''); refreshLB();
 
+// ---------------- anonymous telemetry (counts only: who started, how far, what was missed) ----------------
+const PID = (() => { let v = store.get('gwd_pid', ''); if (!v) { v = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); store.set('gwd_pid', v); } return v; })();
+const SID = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+function tele(e, data = {}) { if (!API) return; try { const body = JSON.stringify(Object.assign({ pid: PID, sid: SID, e }, data)); if (navigator.sendBeacon) navigator.sendBeacon('/api/events', new Blob([body], { type: 'application/json' })); else fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }); } catch (err) {} }
+
 // ---------------- renderer / post ----------------
 const canvas = $('c');
 if (!(canvas.getContext('webgl2') || canvas.getContext('webgl'))) { window.__fail && window.__fail('this browser has no WebGL — try Chrome or Safari'); }
@@ -105,6 +110,7 @@ $('btnFwd').onclick = () => { if (S.over || S.locked) return; cam.auto = { z: HA
 function decide(saidWrong) {
   if (S.over || S.locked) return; S.locked = true; cam.auto = null; cam.walking = false; audio.fanWhine(false); audio.hush(); if (S.riser && S.riser.stop) S.riser.stop(0.2); audio.setDread(0);
   const wasWrong = !!S.anom; fade(true);
+  tele('walk', { pass: S.pass, anom: S.anom ? S.anom.id : 'normal', ok: saidWrong === wasWrong, stung: !!S.stung });
   if (saidWrong === wasWrong) {
     S.score += 100 + Math.min(5, S.inspected.size) * 15 + (wasWrong ? 50 : 0); audio.right(); S.pass++;
     setTimeout(() => { if (S.pass >= 8) end(true); else storyCard(S.pass + 1, () => newWalk()); }, 700);
@@ -136,12 +142,12 @@ async function start() {
     requestAnimationFrame(loop);
   }
   $('play').textContent = 'Begin: Friday, 11:58 PM'; $('play').disabled = false;
-  S = newState(); S.over = false; world.reset(); $('ui').classList.remove('hidden'); fade(true); audio.startAmbience(0);
+  S = newState(); S.over = false; world.reset(); $('ui').classList.remove('hidden'); fade(true); audio.startAmbience(0); tele('start');
   storyCard(0, () => storyCard(1, () => newWalk()));
 }
 function end(won) {
   S.over = true; S.won = won; audio.stopAmbience(); $('ui').classList.add('hidden'); fade(false); const mins = Math.round((Date.now() - S.startT) / 6000) / 10;
-  if (won) { audio.win(); S.score += 500 - Math.min(400, S.wrong * 40); $('overTitle').textContent = '6:30 AM. The thaali.'; typewrite($('overText'), WIN_TEXT()); }
+  tele(won ? 'win' : 'end', { pass: S.pass }); if (won) { audio.win(); S.score += 500 - Math.min(400, S.wrong * 40); $('overTitle').textContent = '6:30 AM. The thaali.'; typewrite($('overText'), WIN_TEXT()); }
   else { audio.laugh(); $('overTitle').textContent = 'He picked up.'; typewrite($('overText'), LOSE_TEXT); }
   $('overScore').textContent = `Score ${S.score} · ${S.walks} walks · ${S.wrong} wrong turns · ${mins} min`;
   if (API && S.score > 0) { $('submit').classList.remove('hidden'); $('send').disabled = false; $('send').textContent = 'Post'; }

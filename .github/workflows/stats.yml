@@ -1,0 +1,8 @@
+name: Play stats
+on:
+  workflow_dispatch:
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sS https://goku-wedding-dash.fly.dev/api/stats | python3 -m json.tool
