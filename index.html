@@ -296,7 +296,7 @@
   function showLevel(i) {
     li = i; newLevel(i); const L = LEVELS[i];
     $('lvlTag').textContent=L.tag; $('lvlTitle').textContent=L.title; $('lvlStory').textContent=L.story; $('lvlHint').textContent=L.hint;
-    $('level').classList.remove('hidden'); draw();
+    $('over').classList.add('hidden'); $('start').classList.add('hidden'); $('level').classList.remove('hidden'); draw();
   }
   function go(){ $('level').classList.add('hidden'); $('start').classList.add('hidden'); audio(); startDrone(S.i); last=0; sfx.thunder(); raf=requestAnimationFrame(loop); }
   function nextLevel(){ cancelAnimationFrame(raf); S.over=true; stopDrone(); if (S.i>=LEVELS.length-1) end(true); else { sfx.win(); showLevel(S.i+1); } }
