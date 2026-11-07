@@ -106,7 +106,7 @@
   window.addEventListener('error', function (e) { if (e && e.message) window.__fail(e.message); });
   window.addEventListener('unhandledrejection', function (e) { window.__fail((e.reason && e.reason.message) || String(e.reason)); });
 </script>
-<script src="assets/pack.js" onerror="this.remove()"></script>
-<script src="dist/game.js" defer onerror="window.__fail('could not download the game script')"></script>
+<script src="assets/pack.js?v=bd9d331cfe" onerror="this.remove()"></script>
+<script src="dist/game.js?v=bd9d331cfe" defer onerror="window.__fail('could not download the game script')"></script>
 </body>
 </html>

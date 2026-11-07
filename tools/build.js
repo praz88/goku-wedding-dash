@@ -10,4 +10,11 @@ esbuild.build({
     b.onResolve({ filter: /^three$/ }, () => ({ path: path.join(root, 'vendor/three.module.js') }));
     b.onResolve({ filter: /^three\/addons\// }, (a) => ({ path: path.join(root, 'vendor/addons', a.path.replace('three/addons/', '')) }));
   } }],
-}).then(() => console.log('built dist/game.js')).catch(e => { console.error(e); process.exit(1); });
+}).then(() => {
+  // cache-bust: stamp the bundle's content hash into index.html (index.html itself is served no-cache)
+  const fs = require('fs'), crypto = require('crypto');
+  const hash = crypto.createHash('md5').update(fs.readFileSync(path.join(root, 'dist/game.js'))).digest('hex').slice(0, 10);
+  const idx = path.join(root, 'index.html'); let html = fs.readFileSync(idx, 'utf8');
+  html = html.replace(/dist\/game\.js(\?v=[a-z0-9]+)?/, 'dist/game.js?v=' + hash).replace(/assets\/pack\.js(\?v=[a-z0-9]+)?/, 'assets/pack.js?v=' + hash);
+  fs.writeFileSync(idx, html); console.log('built dist/game.js  v=' + hash);
+}).catch(e => { console.error(e); process.exit(1); });

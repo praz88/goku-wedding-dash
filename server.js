@@ -41,6 +41,9 @@ http.createServer((req, res) => {
   let p = decodeURIComponent(url.pathname); if (p === '/') p = '/index.html';
   const file = path.normalize(path.join(ROOT, p));
   if (!file.startsWith(ROOT) || !/^\/(index\.html|vendor\/|js\/|assets\/|dist\/)/.test(p) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': (p.startsWith('/vendor/') || p.startsWith('/assets/') || p.startsWith('/dist/')) ? 'public, max-age=86400' : 'no-cache' });
+  const st = fs.statSync(file); const lm = st.mtime.toUTCString(); const etag = 'W/"' + st.size + '-' + st.mtimeMs.toString(36) + '"';
+  if (req.headers['if-none-match'] === etag || (req.headers['if-modified-since'] && new Date(req.headers['if-modified-since']) >= new Date(lm))) { res.writeHead(304); return res.end(); }
+  const longLived = p.startsWith('/assets/') || /\?v=/.test(req.url); // immutable-ish: media, and anything requested with a version stamp
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': longLived ? 'public, max-age=604800' : 'no-cache', 'Last-Modified': lm, 'ETag': etag, 'Content-Length': st.size });
   fs.createReadStream(file).pipe(res);
 }).listen(PORT, '0.0.0.0', () => console.log('listening on', PORT, 'data at', FILE));
