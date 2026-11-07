@@ -5,7 +5,7 @@
 | Story cards, lore, anomaly text | `js/story.js` |
 | The 3D hall, props, anomaly effects (`APPLY` table), `reset()` | `js/scene.js` |
 | Procedural textures (boards, posters, signs, floor, walls) | `js/textures.js` |
-| Sound (all synthesized) | `js/audio.js` |
+| Sound: sample player + synth fallbacks | `js/audio.js` (samples baked by `tools/make-audio.py` into `assets/sfx/`) |
 | Game flow, controls, post-processing | `js/main.js` |
 | Leaderboard server | `server.js` |
 

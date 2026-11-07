@@ -1,7 +1,7 @@
 # 👹 Goku's Wedding Dash: Weekend Nightmare
 
-A slow, first-person horror-comedy browser game about a bank manager, a
-wedding on Sunday, and a phone that does not know what a weekend is.
+A first-person browser game about a bank manager, a wedding on Sunday, and a
+phone that does not know what a weekend is.
 
 **Play: https://goku-wedding-dash.fly.dev** — headphones on, lights off.
 
@@ -17,9 +17,11 @@ the same hall from Friday night to Sunday's muhurtha.
 - **Anything wrong** → walk back to the STAFF ONLY door behind you.
 - Eight right calls → the mantapa. One wrong call → Friday, 11:58 PM, again.
 
-Story cards between walks introduce the Manager, the customers, and the three
-who got away. **Roast mode** lets your group type their own names on their
-own phones; those names never leave the device.
+Story cards between walks introduce the Manager, the customers, Bosi and
+Kailu waiting outside in the auto, and the five calls Goku never took:
+Shravya, Deepika, Aswathi, Laxmi and Aarti. All of them are in the hall,
+some nights. Stare at the wrong thing for three seconds and the hall
+answers. Look away from one of them and she will be closer when you look back.
 
 ## What's in the hall
 
@@ -30,9 +32,10 @@ fans, a money plant, rain outside the exit — and 25 things that can go wrong.
 
 Rendering: three.js, PBR materials with procedurally generated textures,
 HDR environment, bloom, film grain, lens dirt, volumetric light cones, mirror
-floor and shadows in Cinematic mode. Characters: a photogrammetry head scan,
-an animated talking face, a Mixamo figure with a ghost shader. All audio is
-synthesized in the browser (reverb, rain, hum, footsteps, whispers).
+floor and shadows on desktop. Characters: a photogrammetry head scan, an
+animated talking face, Mixamo figures with a ghost shader. Audio: real CC0
+field recordings (rain, storm wind, thunder, creaks) plus a designed drone,
+music bed, stings and whispers — see `assets/sfx/CREDITS.md`.
 
 ## Run locally
 
@@ -42,6 +45,7 @@ npm install && npm run dev     # builds dist/game.js, serves http://localhost:80
 
 Debug helpers: `?anom=cabin_eyes` forces an anomaly on every walk,
 `?pos=x,z,yaw,pitch` starts the camera somewhere specific.
+`python3 tools/make-audio.py` re-bakes the sounds (numpy, scipy, ffmpeg).
 
 ## Deploy (Fly.io)
 
@@ -63,3 +67,4 @@ people.
 - Face capture model from the three.js examples (Face Cap demo).
 - Michelle / X Bot characters: Adobe Mixamo.
 - HDRI: Poly Haven (CC0) via three.js examples.
+- Sounds: CC0 recordings by Joseph Sardin (BigSoundBank) and OpenGameArt contributors, via NoiseSmith; everything else synthesized. Details in `assets/sfx/CREDITS.md`.

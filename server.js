@@ -5,7 +5,7 @@ const ROOT = __dirname;
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : ROOT);
 const FILE = path.join(DATA_DIR, 'scores.json');
 const MAX_SCORE = 20000, MAX_ROWS = 500;
-const MIME = { '.hdr': 'application/octet-stream', '.glb': 'model/gltf-binary', '.webp': 'image/webp', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
+const MIME = { '.hdr': 'application/octet-stream', '.glb': 'model/gltf-binary', '.webp': 'image/webp', '.mp3': 'audio/mpeg', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 let scores = [];
 try { scores = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) { scores = []; }
 const save = () => { try { fs.writeFileSync(FILE, JSON.stringify(scores)); } catch (e) { console.error('save failed', e.message); } };

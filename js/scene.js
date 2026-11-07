@@ -18,11 +18,12 @@ const PL = (w, h) => new THREE.PlaneGeometry(w, h);
 const CYL = (r1, r2, h, s = 24) => new THREE.CylinderGeometry(r1, r2, h, s);
 
 export async function buildScene(renderer, opts) {
-  const { hq, onProgress, mobile } = opts; const TS = mobile ? 512 : 1024; // texture size: lighter generation on phones
+  const { hq, onProgress, mobile, onStatus } = opts; const TS = mobile ? 512 : 1024; // texture size: lighter generation on phones
+  const status = async (txt, frac) => { onStatus && onStatus(txt, frac); await new Promise(r => setTimeout(r, 40)); };
   RectAreaLightUniformsLib.init();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x020203);
-  scene.fog = new THREE.FogExp2(0x06040a, 0.06);
+  scene.fog = new THREE.FogExp2(0x05030a, 0.07); scene.add(new THREE.AmbientLight(0x241c2c, 0.5));
   const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 84 : 70, 1, 0.05, 80);
 
   const hit = [];               // raycast targets
@@ -45,7 +46,7 @@ export async function buildScene(renderer, opts) {
 
   // ---------------- shell ----------------
   const { W, H, Z0, Z1 } = HALL, L = Z0 - Z1, ZC = (Z0 + Z1) / 2;
-  const F = TX.floorSet(TS, 2); F.map.repeat.set(W / 1.2, L / 1.2); F.roughnessMap.repeat.copy(F.map.repeat); F.normalMap.repeat.copy(F.map.repeat); [F.map, F.roughnessMap, F.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
+  await status('mopping the floor…', 0.12); const F = TX.floorSet(TS, 2); F.map.repeat.set(W / 1.2, L / 1.2); F.roughnessMap.repeat.copy(F.map.repeat); F.normalMap.repeat.copy(F.map.repeat); [F.map, F.roughnessMap, F.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
   const floorMat = std({ map: F.map, roughnessMap: F.roughnessMap, normalMap: F.normalMap, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 1, metalness: 0.05, envMapIntensity: 0.9, transparent: hq, opacity: hq ? 0.86 : 1 });
   const floor = new THREE.Mesh(PL(W, L), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(0, hq ? 0.004 : 0, ZC); floor.receiveShadow = true; scene.add(floor);
   let reflector = null;
@@ -56,7 +57,7 @@ export async function buildScene(renderer, opts) {
   }
   const C = TX.ceilingSet(mobile ? 256 : 512); C.map.repeat.set(W / 1.2, L / 1.2); C.normalMap.repeat.copy(C.map.repeat); [C.map, C.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; });
   const ceil = new THREE.Mesh(PL(W, L), std({ map: C.map, normalMap: C.normalMap, roughness: 0.95 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, H, ZC); scene.add(ceil);
-  const WS = TX.wallSet(TS, TS, H);
+  await status('plastering the walls…', 0.22); const WS = TX.wallSet(TS, TS, H);
   const wallMat = (len, start) => { const m = std({ map: WS.map.clone(), roughnessMap: WS.roughnessMap.clone(), normalMap: WS.normalMap.clone(), normalScale: new THREE.Vector2(0.5, 0.5), roughness: 1 }); [m.map, m.roughnessMap, m.normalMap].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(len / 4, 1); t.offset.set(start / 4, 0); t.needsUpdate = true; }); return m; };
   const wallSeg = (x, z0, z1, y0, y1, ry) => { const len = Math.abs(z1 - z0), h = y1 - y0; const m = new THREE.Mesh(PL(len, h), wallMat(len, Math.min(z0, z1))); m.position.set(x, (y0 + y1) / 2, (z0 + z1) / 2); m.rotation.y = ry; m.receiveShadow = true; scene.add(m); if (y0 > 0) { m.material.map.offset.y = y0 / H; m.material.map.repeat.y = h / H; [m.material.roughnessMap, m.material.normalMap].forEach(t => { t.offset.y = y0 / H; t.repeat.y = h / H; }); } return m; };
   // left wall with openings for the cabin door (z -4.2..-5.2) and strong room (z -9.8..-11.2)
@@ -68,6 +69,7 @@ export async function buildScene(renderer, opts) {
   // cornice strip + ceiling grid rails
   const rail = std({ color: 0x9a968a, roughness: 0.8 }); [-W / 2 + 0.03, W / 2 - 0.03].forEach(x => { const r = new THREE.Mesh(BOX(0.06, 0.06, L), rail); r.position.set(x, H - 0.03, ZC); scene.add(r); });
 
+  await status('fixing the tube lights (badly)…', 0.34);
   // ---------------- ceiling: tube lights, fans, dome camera ----------------
   const tubeZ = [-2, -6, -10, -14, -18, -22];
   const tubeMat = std({ color: 0xffffff, emissive: 0xfff1d6, emissiveIntensity: 1.6, roughness: 0.3 });
@@ -79,7 +81,7 @@ export async function buildScene(renderer, opts) {
     let light;
     if (hq) { light = new THREE.RectAreaLight(0xffe9c8, 9, 1.3, 0.25); light.position.set(0, H - 0.1, z); light.lookAt(0, 0, z); }
     else { light = new THREE.PointLight(0xffe9c8, 4.5, 11, 1.8); light.position.set(0, H - 0.3, z); }
-    scene.add(light); lights.tubes.push({ tube, light, base: light.intensity, flickery: i === 1 || i === 4, phase: Math.random() * 10 });
+    scene.add(light); const dead = i === 3; if (dead) { light.intensity = 0; tube.material.emissiveIntensity = 0.05; tube.material.color.set(0x8a8a86); } lights.tubes.push({ tube, light, base: light.intensity, flickery: i === 1 || i === 4, dead, phase: Math.random() * 10 });
     if (hq) { const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 1.5, H - 0.1, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe3b0, transparent: true, opacity: 0.018, alphaMap: coneTex, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); cone.position.set(0, (H - 0.1) / 2, z); scene.add(cone); }
   });
   // shadow-casting spots next to the fans
@@ -100,6 +102,7 @@ export async function buildScene(renderer, opts) {
   const dome = new THREE.Mesh(new THREE.SphereGeometry(0.1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: 0x1a1a1a, roughness: 0.1, metalness: 0.6 })); dome.rotation.x = Math.PI; dome.position.set(1.2, H - 0.01, -0.6); scene.add(dome);
   const domeRing = new THREE.Mesh(CYL(0.13, 0.13, 0.03, 24), std({ color: 0xf0f0f0 })); domeRing.position.set(1.2, H - 0.015, -0.6); scene.add(domeRing);
 
+  await status('printing the posters…', 0.44);
   // ---------------- LEFT WALL ----------------
   const X = -W / 2;
   // fire extinguisher + sign
@@ -152,10 +155,10 @@ export async function buildScene(renderer, opts) {
   const metalT = TX.counterShutter();
   const cab = new THREE.Mesh(BOX(0.45, 1.9, 1.0), std({ color: 0x8a8f94, metalness: 0.6, roughness: 0.5 })); cab.position.set(X + 0.23, 0.95, -12.3); cab.castShadow = true; scene.add(cab); for (let k = 0; k < 2; k++) { const h = new THREE.Mesh(BOX(0.02, 0.1, 0.02), std({ color: 0x222 })); h.position.set(X + 0.47, 1.0, -12.3 + (k ? 0.25 : -0.25)); scene.add(h); }
   // noticeboard
-  const notice = new THREE.Mesh(PL(1.6, 1.0), std({ map: TX.noticeBoard(false), roughness: 0.95 })); notice.position.set(X + 0.04, 1.75, -14.2); notice.rotation.y = Math.PI / 2; scene.add(notice);
-  const nFrame = new THREE.Mesh(BOX(0.05, 1.1, 1.7), std({ color: 0x3a2412, roughness: 0.7 })); nFrame.position.set(X + 0.015, 1.75, -14.2); scene.add(nFrame); reg('notice', notice, nFrame);
+  const notice = new THREE.Mesh(PL(1.6, 1.0), std({ map: TX.noticeBoard(false), roughness: 0.95 })); notice.position.set(X + 0.055, 1.75, -14.2); notice.rotation.y = Math.PI / 2; scene.add(notice);
+  const nFrame = new THREE.Mesh(BOX(0.05, 1.1, 1.7), std({ color: 0x3a2412, roughness: 0.7 })); nFrame.position.set(X + 0.01, 1.75, -14.2); scene.add(nFrame); reg('notice', notice, nFrame);
   // posters (framed)
-  const framed = (t, x, y, z, ry, w = 0.5, h = 0.7, id = 'poster') => { const f = new THREE.Mesh(BOX(0.03, h + 0.06, w + 0.06), std({ color: 0x1a1a1a, roughness: 0.4 })); f.position.set(x, y, z); f.rotation.y = ry - Math.PI / 2; scene.add(f); const p = new THREE.Mesh(PL(w, h), std({ map: t, roughness: 0.6 })); p.position.set(x + (ry > 0 ? 0.02 : -0.02), y, z); p.rotation.y = ry; scene.add(p); reg(id, f, p); return p; };
+  const framed = (t, x, y, z, ry, w = 0.5, h = 0.7, id = 'poster') => { const f = new THREE.Mesh(BOX(0.03, h + 0.06, w + 0.06), std({ color: 0x1a1a1a, roughness: 0.4 })); f.position.set(x, y, z); f.rotation.y = ry - Math.PI / 2; scene.add(f); const p = new THREE.Mesh(PL(w, h), std({ map: t, roughness: 0.6 })); p.position.set(x + (ry > 0 ? 0.03 : -0.03), y, z); p.rotation.y = ry; scene.add(p); reg(id, f, p); return p; };
   framed(TX.poster('fraud'), X + 0.02, 1.7, -16.4, Math.PI / 2); framed(TX.poster('loan'), X + 0.02, 1.7, -17.4, Math.PI / 2);
   // water cooler
   const cooler = new THREE.Group(); cooler.position.set(X + 0.32, 0, -19.1); scene.add(cooler);
@@ -179,10 +182,11 @@ export async function buildScene(renderer, opts) {
   // token display
   const tokenTex = TX.ledDisplay('NOW SERVING 0000', { w: 1024, h: 256 });
   const token = new THREE.Mesh(BOX(0.06, 0.3, 1.2), std({ color: 0x111, roughness: 0.5 })); token.position.set(X + 0.08, 2.75, -22.4); scene.add(token);
-  const tokenScr = new THREE.Mesh(PL(1.1, 0.26), std({ map: tokenTex, emissive: 0xff3030, emissiveMap: tokenTex, emissiveIntensity: 1.8, roughness: 0.4 })); tokenScr.position.set(X + 0.115, 2.75, -22.4); tokenScr.rotation.y = Math.PI / 2; scene.add(tokenScr); reg('token', token, tokenScr);
+  const tokenScr = new THREE.Mesh(PL(1.1, 0.26), std({ map: tokenTex, emissive: 0xff3030, emissiveMap: tokenTex, emissiveIntensity: 1.8, roughness: 0.4 })); tokenScr.position.set(X + 0.125, 2.75, -22.4); tokenScr.rotation.y = Math.PI / 2; scene.add(tokenScr); reg('token', token, tokenScr);
 
+  await status('arranging the desk…', 0.56);
   // ---------------- RIGHT WALL ----------------
-  const XR = W / 2;
+  const XR = W / 2; const cardTex = TX.weddingCard();
   // security desk + CCTV monitor + plastic chair
   const sec = new THREE.Group(); sec.position.set(XR - 0.45, 0, -1.4); scene.add(sec);
   const sTop = new THREE.Mesh(BOX(0.8, 0.04, 1.0), std({ color: 0x8a6a48, roughness: 0.6 })); sTop.position.y = 0.76; sTop.castShadow = true; sec.add(sTop); [[-0.35, -0.45], [-0.35, 0.45], [0.35, -0.45], [0.35, 0.45]].forEach(([x, z]) => { const l = new THREE.Mesh(BOX(0.04, 0.74, 0.04), std({ color: 0x333, metalness: 0.7, roughness: 0.4 })); l.position.set(x, 0.37, z); sec.add(l); });
@@ -202,14 +206,14 @@ export async function buildScene(renderer, opts) {
   const atmLight = new THREE.PointLight(0x4a8cff, 1.4, 3, 2); atmLight.position.set(-0.6, 1.4, 0); atm.add(atmLight);
   const atmGlassL = new THREE.Mesh(PL(1.6, 2.4), glassMat()); atmGlassL.position.set(-1.0, 1.2, 0); atmGlassL.rotation.y = -Math.PI / 2; atm.add(atmGlassL); [[-1.0, 0, -0.8], [-1.0, 0, 0.8]].forEach(([x, y, z]) => { const f = new THREE.Mesh(BOX(0.06, 2.4, 0.06), alu); f.position.set(x, 1.2, z); atm.add(f); }); const fTop = new THREE.Mesh(BOX(0.06, 0.06, 1.6), alu); fTop.position.set(-1.0, 2.42, 0); atm.add(fTop);
   const atmSign = new THREE.Mesh(PL(0.9, 0.22), std({ map: TX.sign('24 × 7  ATM', { w: 512, h: 120, bg: '#b3121a', fg: '#fff', font: 'bold 64px sans-serif' }) })); atmSign.position.set(-1.03, 2.2, 0); atmSign.rotation.y = -Math.PI / 2; atm.add(atmSign);
-  const cardTex = TX.weddingCard(); const cards = new THREE.Group(); cards.visible = false; atm.add(cards);
+  const cards = new THREE.Group(); cards.visible = false; atm.add(cards);
   for (let i = 0; i < 24; i++) { const c = new THREE.Mesh(PL(0.16, 0.1), std({ map: cardTex, side: THREE.DoubleSide, roughness: 0.9 })); c.position.set(-0.5 - Math.random() * 0.9, 0.003 + i * 0.002, (Math.random() - 0.5) * 1.4); c.rotation.set(-Math.PI / 2, 0, Math.random() * 6); cards.add(c); }
   const fallCards = []; for (let i = 0; i < 6; i++) { const c = new THREE.Mesh(PL(0.16, 0.1), std({ map: cardTex, side: THREE.DoubleSide })); c.userData.t = Math.random() * 3; cards.add(c); fallCards.push(c); }
   anim.push((dt) => { if (!cards.visible) return; fallCards.forEach(c => { c.userData.t = (c.userData.t + dt) % 3; const p = c.userData.t / 3; c.position.set(-0.4 - p * 0.6, 0.75 - p * 0.72, Math.sin(p * 9) * 0.15); c.rotation.set(p * 6, p * 3, 0); }); });
   reg('atm', atm);
   // NPA whiteboard
   const npaTexN = TX.npaBoard(false), npaTexG = TX.npaBoard(true);
-  const npa = new THREE.Mesh(PL(1.6, 1.0), std({ map: npaTexN, roughness: 0.5 })); npa.position.set(XR - 0.04, 1.75, -6.4); npa.rotation.y = -Math.PI / 2; scene.add(npa);
+  const npa = new THREE.Mesh(PL(1.6, 1.0), std({ map: npaTexN, roughness: 0.5 })); npa.position.set(XR - 0.05, 1.75, -6.4); npa.rotation.y = -Math.PI / 2; scene.add(npa);
   const npaF = new THREE.Mesh(BOX(0.04, 1.08, 1.68), alu); npaF.position.set(XR - 0.015, 1.75, -6.4); scene.add(npaF); const tray = new THREE.Mesh(BOX(0.08, 0.03, 0.6), alu); tray.position.set(XR - 0.06, 1.22, -6.4); scene.add(tray); reg('npa', npa, npaF);
   // ---- Goku's desk ----
   const desk = new THREE.Group(); desk.position.set(XR - 0.95, 0, -9.6); scene.add(desk);
@@ -218,7 +222,7 @@ export async function buildScene(renderer, opts) {
   const dFront = new THREE.Mesh(BOX(0.04, 0.72, 1.9), deskMat); dFront.position.set(-0.4, 0.37, 0); desk.add(dFront); [[0.38, -0.9], [0.38, 0.9], [-0.38, -0.9], [-0.38, 0.9]].forEach(([x, z]) => { const l = new THREE.Mesh(BOX(0.05, 0.74, 0.05), deskMat); l.position.set(x, 0.37, z); desk.add(l); });
   const drawer = new THREE.Mesh(BOX(0.7, 0.6, 0.5), deskMat); drawer.position.set(0, 0.42, 0.6); desk.add(drawer); for (let k = 0; k < 3; k++) { const h = new THREE.Mesh(BOX(0.12, 0.02, 0.02), std({ color: 0xd4af37, metalness: 1, roughness: 0.3 })); h.position.set(-0.36, 0.25 + k * 0.17, 0.6); desk.add(h); }
   // monitor (faces -x, toward the hall)
-  const monT = TX.monitorScreen(); const monB = new THREE.Mesh(BOX(0.03, 0.36, 0.56), std({ color: 0x111, roughness: 0.4 })); monB.position.set(0.1, 1.03, -0.3); desk.add(monB); const monS = new THREE.Mesh(PL(0.52, 0.32), std({ map: monT, emissive: 0x5a8cff, emissiveMap: monT, emissiveIntensity: 0.75, roughness: 0.2 })); monS.position.set(0.083, 1.03, -0.3); monS.rotation.y = -Math.PI / 2; desk.add(monS); const monStand = new THREE.Mesh(BOX(0.08, 0.2, 0.08), std({ color: 0x111 })); monStand.position.set(0.1, 0.88, -0.3); desk.add(monStand);
+  const monT = TX.monitorScreen(); const monB = new THREE.Mesh(BOX(0.03, 0.36, 0.56), std({ color: 0x111, roughness: 0.4 })); monB.position.set(0.1, 1.03, -0.3); desk.add(monB); const monS = new THREE.Mesh(PL(0.52, 0.32), std({ map: monT, emissive: 0x5a8cff, emissiveMap: monT, emissiveIntensity: 0.75, roughness: 0.2 })); monS.position.set(0.078, 1.03, -0.3); monS.rotation.y = -Math.PI / 2; desk.add(monS); const monStand = new THREE.Mesh(BOX(0.08, 0.2, 0.08), std({ color: 0x111 })); monStand.position.set(0.1, 0.88, -0.3); desk.add(monStand);
   const scrLight = new THREE.PointLight(0x5a8cff, 1.1, 2.2, 2); scrLight.position.set(-0.2, 1.1, -0.3); desk.add(scrLight);
   const kb = new THREE.Mesh(BOX(0.14, 0.02, 0.42), std({ color: 0x1a1a1a, roughness: 0.6 })); kb.position.set(-0.15, 0.795, -0.3); desk.add(kb);
   // banker's lamp
@@ -233,7 +237,8 @@ export async function buildScene(renderer, opts) {
   const cup = new THREE.Mesh(CYL(0.035, 0.03, 0.08, 16), std({ color: 0xfafafa, roughness: 0.6 })); cup.position.set(-0.25, 0.83, -0.65); desk.add(cup);
   const bmPlate = new THREE.Mesh(PL(0.34, 0.07), std({ map: TX.nameplate('BRANCH MANAGER'), metalness: 0.6, roughness: 0.35 })); bmPlate.position.set(-0.43, 0.6, 0); bmPlate.rotation.y = -Math.PI / 2; desk.add(bmPlate);
   const thaali = new THREE.Group(); thaali.visible = false; thaali.position.set(0.05, 0.8, 0.3); desk.add(thaali); const gold = std({ color: 0xffc83c, metalness: 1, roughness: 0.2, emissive: 0x3a2200, emissiveIntensity: 0.3 }); const tCord = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.006, 8, 40), gold); tCord.rotation.x = Math.PI / 2; thaali.add(tCord); for (let k = 0; k < 2; k++) { const pend = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 8), gold); pend.position.set(0.02 * (k ? 1 : -1), 0.012, 0.07); thaali.add(pend); } const pendant = new THREE.Mesh(CYL(0.012, 0.016, 0.03, 12), gold); pendant.position.set(0, 0.015, 0.075); thaali.add(pendant);
-  reg('desk', dTop, dFront, drawer, monB, monS, kb, phone, landline, files, bmPlate, thaali);
+  const invite = new THREE.Mesh(PL(0.16, 0.1), std({ map: cardTex, roughness: 0.85, side: THREE.DoubleSide })); invite.rotation.x = -Math.PI / 2 + 0.25; invite.rotation.z = -0.4; invite.position.set(-0.22, 0.81, -0.1); desk.add(invite);
+  reg('desk', dTop, dFront, drawer, monB, monS, kb, phone, landline, files, bmPlate, thaali); reg('card', invite);
   // executive chair behind the desk, two visitor chairs in front
   const exec = new THREE.Group(); exec.position.set(XR - 0.35, 0, -9.6); exec.rotation.y = -Math.PI / 2; scene.add(exec); const leather = std({ color: 0x1a1612, roughness: 0.5 }); const es = new THREE.Mesh(BOX(0.55, 0.1, 0.55), leather); es.position.y = 0.5; es.castShadow = true; exec.add(es); const eb = new THREE.Mesh(BOX(0.55, 0.7, 0.1), leather); eb.position.set(0, 0.9, -0.25); eb.castShadow = true; exec.add(eb); const ebase = new THREE.Mesh(CYL(0.04, 0.04, 0.45, 10), alu); ebase.position.y = 0.22; exec.add(ebase); for (let k = 0; k < 5; k++) { const leg = new THREE.Mesh(BOX(0.3, 0.03, 0.04), alu); leg.position.set(0, 0.03, 0); leg.rotation.y = k * Math.PI * 2 / 5; leg.translateX(0.15); exec.add(leg); }
   const vchair = (z) => { const g = new THREE.Group(); g.position.set(XR - 1.75, 0, z); g.rotation.y = Math.PI / 2; scene.add(g); const m = std({ color: 0x2d4a6e, roughness: 0.55, metalness: 0.2 }); const s = new THREE.Mesh(BOX(0.46, 0.05, 0.46), m); s.position.y = 0.46; s.castShadow = true; g.add(s); const b = new THREE.Mesh(BOX(0.46, 0.45, 0.04), m); b.position.set(0, 0.72, -0.22); b.castShadow = true; g.add(b); [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]].forEach(([x, zz]) => { const l = new THREE.Mesh(CYL(0.014, 0.014, 0.46, 8), alu); l.position.set(x, 0.23, zz); g.add(l); }); return g; };
@@ -241,11 +246,11 @@ export async function buildScene(renderer, opts) {
   const bin = new THREE.Mesh(CYL(0.14, 0.11, 0.36, 20), std({ color: 0x2a2a2a, roughness: 0.5 })); bin.position.set(XR - 0.55, 0.18, -11.1); bin.castShadow = true; scene.add(bin); reg('bin', bin);
   // calendar behind the desk
   const calN = TX.calendar(false), calW = TX.calendar(true);
-  const cal = new THREE.Mesh(PL(0.45, 0.56), std({ map: calN, roughness: 0.8 })); cal.position.set(XR - 0.02, 1.85, -9.6); cal.rotation.y = -Math.PI / 2; scene.add(cal); reg('calendar', cal);
+  const cal = new THREE.Mesh(PL(0.45, 0.56), std({ map: calN, roughness: 0.8 })); cal.position.set(XR - 0.025, 1.85, -9.6); cal.rotation.y = -Math.PI / 2; scene.add(cal); reg('calendar', cal);
   // ---- Chairman portrait with picture light ----
   const porFrame = new THREE.Mesh(BOX(0.06, 1.12, 0.92), std({ color: 0x5a3a10, roughness: 0.5, metalness: 0.2 })); porFrame.position.set(XR - 0.04, 2.0, -12.6); scene.add(porFrame);
   const porTexN = TX.portraitPainting(false), porTexM = TX.portraitPainting(true);
-  const por = new THREE.Mesh(PL(0.8, 1.0), std({ map: porTexN, roughness: 0.75 })); por.position.set(XR - 0.075, 2.0, -12.6); por.rotation.y = -Math.PI / 2; scene.add(por);
+  const por = new THREE.Mesh(PL(0.8, 1.0), std({ map: porTexN, roughness: 0.75 })); por.position.set(XR - 0.085, 2.0, -12.6); por.rotation.y = -Math.PI / 2; scene.add(por);
   const picBar = new THREE.Mesh(BOX(0.12, 0.04, 0.6), std({ color: 0xc9a23a, metalness: 1, roughness: 0.3 })); picBar.position.set(XR - 0.12, 2.62, -12.6); scene.add(picBar);
   const porLight = new THREE.SpotLight(0xffe0b0, hq ? 7 : 5, 3.5, 0.6, 0.7, 1.4); porLight.position.set(XR - 0.18, 2.6, -12.6); porLight.target.position.set(XR, 1.9, -12.6); scene.add(porLight, porLight.target);
   reg('portrait', porFrame, por);
@@ -282,6 +287,16 @@ export async function buildScene(renderer, opts) {
   const oWall = new THREE.Mesh(PL(6, 4), std({ color: 0x4a3a2a, roughness: 1 })); oWall.position.set(0, 2, -4); outside.add(oWall);
   const mantapaLight = new THREE.PointLight(0xff9a3a, 9, 9, 1.7); mantapaLight.position.set(0.4, 1.6, -2.2); outside.add(mantapaLight);
   const garland = new THREE.Group(); outside.add(garland); for (let i = 0; i < 40; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), std({ color: i % 2 ? 0xffa21a : 0xfff0c0, emissive: i % 2 ? 0x662a00 : 0x443300, emissiveIntensity: 0.6, roughness: 0.8 })); const t = i / 39; m.position.set(-1.6 + t * 3.2, 2.3 - Math.sin(t * Math.PI) * 0.5, -1.0); garland.add(m); }
+  // the auto, waiting outside with the meter running
+  const auto = new THREE.Group(); auto.position.set(1.6, 0, -2.6); auto.rotation.y = -0.6; outside.add(auto);
+  const autoBody = std({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.3 }), autoYellow = std({ color: 0xf2c200, roughness: 0.5, metalness: 0.2 });
+  const ab = new THREE.Mesh(BOX(1.3, 0.55, 2.3), autoBody); ab.position.y = 0.55; auto.add(ab); const acab = new THREE.Mesh(BOX(1.32, 0.9, 1.9), autoYellow); acab.position.set(0, 1.25, 0.1); auto.add(acab);
+  const hood = new THREE.Mesh(BOX(1.0, 0.5, 0.6), autoYellow); hood.position.set(0, 0.75, -1.25); auto.add(hood); const wshield = new THREE.Mesh(PL(1.0, 0.55), glassMat()); wshield.position.set(0, 1.3, -0.86); auto.add(wshield);
+  [[-0.6, 0.6], [0.6, 0.6], [0, -1.35]].forEach(([x, z]) => { const wheel = new THREE.Mesh(CYL(0.26, 0.26, 0.16, 18), autoBody); wheel.rotation.z = Math.PI / 2; wheel.position.set(x, 0.26, z); auto.add(wheel); });
+  const headlamp = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), std({ color: 0xffffff, emissive: 0xfff2c0, emissiveIntensity: 2 })); headlamp.position.set(0, 0.95, -1.56); auto.add(headlamp); const headLight = new THREE.PointLight(0xfff0c0, 2.5, 6, 2); headLight.position.set(0, 1.0, -1.9); auto.add(headLight);
+  const meterBox = new THREE.Mesh(BOX(0.12, 0.1, 0.1), std({ color: 0x222 })); meterBox.position.set(0.45, 1.75, -0.5); auto.add(meterBox); const meterLamp = new THREE.PointLight(0xff3030, 0.6, 1.5); meterLamp.position.set(0.45, 1.8, -0.5); auto.add(meterLamp);
+  const autoSign = new THREE.Mesh(PL(0.9, 0.2), std({ map: TX.sign('AUTO · BOSI & KAILU WAITING', { w: 640, h: 120, bg: '#f2c200', fg: '#1a1a1a', font: 'bold 40px sans-serif' }), roughness: 0.6 })); autoSign.position.set(0, 1.72, 1.06); autoSign.rotation.y = Math.PI; auto.add(autoSign);
+  reg('auto', auto);
   // rain streaks
   const rainN = hq ? 500 : 220; const rainPos = new Float32Array(rainN * 6); const rainSeed = [];
   for (let i = 0; i < rainN; i++) { const x = (Math.random() - 0.5) * 6, z = -0.4 - Math.random() * 3.4, y = Math.random() * 3.3; rainSeed.push({ x, z, y, s: 3 + Math.random() * 2 }); }
@@ -307,6 +322,7 @@ export async function buildScene(renderer, opts) {
   const moth = new THREE.Mesh(PL(0.03, 0.02), new THREE.MeshBasicMaterial({ color: 0x3a3028, side: THREE.DoubleSide })); scene.add(moth); let mothT = 0;
   anim.push((dt, t) => { mothT += dt * (1.5 + Math.sin(t * 3)); moth.position.set(Math.sin(mothT * 2.3) * 0.5, H - 0.25 + Math.sin(mothT * 5.1) * 0.12, -2 + Math.cos(mothT * 1.7) * 0.4); moth.rotation.y = mothT * 4; });
 
+  await status('waking the Manager…', 0.68);
   // ---------------- MODELS ----------------
   const ghostify = (root, tint = 0x9ec9ff) => { root.traverse(m => { if (!m.isMesh) return; const mat = new THREE.MeshStandardMaterial({ color: 0xbfd4ff, emissive: tint, emissiveIntensity: 0.7, transparent: true, opacity: 0.42, depthWrite: false, roughness: 0.9 }); mat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', `float fres = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 2.2); gl_FragColor = vec4(outgoingLight * 0.6 + emissive * fres * 1.8, (0.08 + fres * 1.1) * diffuseColor.a);`); }; m.material = mat; m.castShadow = false; m.receiveShadow = false; m.frustumCulled = false; }); };
   const silhouette = (root, color = 0x0b0a0a) => { root.traverse(m => { if (m.isMesh) { m.material = std({ color, roughness: 0.95, metalness: 0 }); m.castShadow = true; m.frustumCulled = false; } }); };
@@ -316,18 +332,21 @@ export async function buildScene(renderer, opts) {
   const [gMich, gXbot, gRpm, gFace, gHead, gMug] = await Promise.all(['assets/models/Michelle.glb', 'assets/models/Xbot.glb', 'assets/models/readyplayer.me.glb', 'assets/models/facecap.glb', 'assets/models/head.glb', 'assets/models/coffeeMug.glb'].map(load));
 
   // the three who got away (Michelle, slowed samba = eerie sway)
-  const ghosts = [];
-  if (gMich) for (let i = 0; i < 3; i++) { const root = new THREE.Group(); const m = SkeletonUtils.clone(gMich.scene); fitHeight(m, 1.68); ghostify(m, [0x9ec9ff, 0xc9b0ff, 0xffb09e][i]); root.add(m); root.visible = false; scene.add(root); const mx = new THREE.AnimationMixer(m); const clip = gMich.animations.find(a => a.name === 'SambaDance') || gMich.animations[0];
+  const ghosts = []; const GHOST_TINT = [0x9ec9ff, 0xc9b0ff, 0xb0ffd0, 0xffe0a0, 0xffb0c0, 0xffb09e];
+  if (gMich) for (let i = 0; i < 6; i++) { const root = new THREE.Group(); const m = SkeletonUtils.clone(gMich.scene); fitHeight(m, 1.68); ghostify(m, GHOST_TINT[i]); root.add(m); root.visible = false; scene.add(root); const mx = new THREE.AnimationMixer(m); const clip = gMich.animations.find(a => a.name === 'SambaDance') || gMich.animations[0];
     if (clip) { const a = mx.clipAction(clip); a.play(); // find the calmest frame (hands lowest) and hold it: a ghost stands still
       const lh = m.getObjectByName('mixamorig:LeftHand') || m.getObjectByName('mixamorigLeftHand'), rh = m.getObjectByName('mixamorig:RightHand') || m.getObjectByName('mixamorigRightHand'); let best = 0, bestT = 0;
       if (lh && rh) { const v = new THREE.Vector3(); for (let t = 0; t < clip.duration; t += 0.08) { mx.setTime(t); m.updateMatrixWorld(true); const y1 = lh.getWorldPosition(v).y, y2 = rh.getWorldPosition(v).y; const sc = -(y1 + y2); if (sc > best || t === 0) { best = sc; bestT = t; } } }
-      mx.setTime(bestT + i * 0.01); a.timeScale = 0.0; } mixers.push(mx); const light = new THREE.PointLight([0x9ec9ff, 0xc9b0ff, 0xffb09e][i], 0, 3.5, 2); light.position.set(0, 1.3, 0.3); root.add(light); ghosts.push({ root, light, m }); reg('ghost' + i, m); }
+      mx.setTime(bestT + i * 0.01); a.timeScale = 0.0; } mixers.push(mx); const light = new THREE.PointLight(GHOST_TINT[i], 0, 3.5, 2); light.position.set(0, 1.3, 0.3); root.add(light); ghosts.push({ root, light, m }); reg('ghost' + i, m); }
   const veil = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.9, 20, 1, true), std({ color: 0xc1121f, emissive: 0x7a0a10, emissiveIntensity: 0.5, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })); veil.position.set(0.3, 1.5, Z1 - 1.5); veil.visible = false; scene.add(veil);
   const jasmine = new THREE.Group(); for (let i = 0; i < 24; i++) { const j = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 5), std({ color: 0xffffff, emissive: 0xfff0d0, emissiveIntensity: 0.6 })); const a = i / 24 * Math.PI * 2; j.position.set(Math.cos(a) * 0.2, 1.28 + Math.sin(a * 2) * 0.02, Math.sin(a) * 0.14); jasmine.add(j); } jasmine.position.set(0.3, 0, Z1 - 1.5); veil.add(jasmine); jasmine.position.set(0, -1.5, 0);
   const placeGhost = (i, x, z, ry, propId) => { const g = ghosts[i]; if (!g) return; g.root.position.set(x, 0, z); g.root.rotation.y = ry; g.root.visible = true; g.light.intensity = 1.6; g.m.traverse(mm => { if (mm.isMesh) mm.userData.id = propId; }); };
   // customers (Xbot silhouettes)
   const customers = [];
-  if (gXbot) for (let i = 0; i < 4; i++) { const m = SkeletonUtils.clone(gXbot.scene); fitHeight(m, 1.78); silhouette(m); const root = new THREE.Group(); root.add(m); root.visible = false; scene.add(root); const mx = new THREE.AnimationMixer(m); const names = ['sad_pose', 'sneak_pose', 'idle', 'sad_pose']; const clip = gXbot.animations.find(a => a.name === names[i]) || gXbot.animations[0]; if (clip) { const a = mx.clipAction(clip); a.timeScale = 0.6; a.play(); a.time = i; } mixers.push(mx); customers.push({ root, m }); }
+  if (gXbot) for (let i = 0; i < 6; i++) { const m = SkeletonUtils.clone(gXbot.scene); fitHeight(m, 1.78); silhouette(m, i === 4 ? 0xd81b60 : i === 5 ? 0x1e6fd0 : 0x0b0a0a); const root = new THREE.Group(); root.add(m); root.visible = false; scene.add(root); const mx = new THREE.AnimationMixer(m); const names = ['sad_pose', 'sneak_pose', 'idle', 'sad_pose', 'agree', 'idle']; const clip = gXbot.animations.find(a => a.name === names[i]) || gXbot.animations[0]; if (clip) { const a = mx.clipAction(clip); a.timeScale = i === 4 ? 1.2 : 0.6; a.play(); a.time = i; } mixers.push(mx); customers.push({ root, m }); }
+  // Bosi's garland (marigold) and Kailu's form
+  const marigold = new THREE.Group(); for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2; const mm = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), std({ color: i % 2 ? 0xffa21a : 0xff6a00, emissive: 0x552000, emissiveIntensity: 0.5, roughness: 0.8 })); mm.position.set(Math.cos(a) * 0.24, 1.25 - Math.abs(Math.sin(a)) * 0.25, Math.sin(a) * 0.16); marigold.add(mm); } marigold.visible = false; scene.add(marigold);
+  const leave = new THREE.Mesh(PL(0.21, 0.28), std({ map: TX.leaveForm(), side: THREE.DoubleSide, roughness: 0.9 })); leave.visible = false; scene.add(leave);
   const placeCustomer = (i, x, z, ry, propId) => { const c = customers[i]; if (!c) return; c.root.position.set(x, 0, z); c.root.rotation.y = ry; c.root.visible = true; if (propId) reg(propId, c.m); };
   // normal night: one customer at the ENQUIRY counter, back to you, never leaving
   placeCustomer(3, X + 1.4, -21.0, Math.PI / 2 + 0.2, 'counter');
@@ -337,13 +356,16 @@ export async function buildScene(renderer, opts) {
   anim.push((dt, t) => { if (jawMesh && noface.visible) jawMesh.morphTargetInfluences[jawMesh.morphTargetDictionary.jawOpen] = Math.max(0, Math.sin(t * 5)) * 0.55; });
   // the Manager's face (scanned head) in the cabin gap
   let head = null;
-  if (gHead) { const m = gHead.scene; m.traverse(mm => { if (mm.isMesh) { mm.material = std({ map: loadTex('assets/tex/head_col.jpg'), normalMap: loadTex('assets/tex/head_nrm.jpg', false), roughness: 0.55, metalness: 0 }); mm.castShadow = true; } else if (mm.isCamera || mm.isLight) mm.visible = false; }); fitHeight(m, 0.3, true); head = new THREE.Group(); head.add(m); head.visible = false; head.position.set(-0.18, 1.6, -0.36); head.rotation.y = Math.PI / 2; room.add(head); const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.0, 4, 12), std({ color: 0x050405, roughness: 1 })); body.position.set(0, -0.85, 0); head.add(body); const shoulders = new THREE.Mesh(BOX(0.52, 0.12, 0.26), std({ color: 0x050405, roughness: 1 })); shoulders.position.set(0, -0.3, 0); head.add(shoulders); reg('cabin', m); const under = new THREE.PointLight(0xff5a3a, 0, 1.6, 2); under.position.set(0.12, -0.35, 0.05); head.add(under); head.userData.under = under; }
+  if (gHead) { const m = gHead.scene; m.traverse(mm => { if (mm.isMesh) { mm.material = std({ map: loadTex('assets/tex/head_col.jpg'), color: 0x9a8070, normalMap: loadTex('assets/tex/head_nrm.jpg', false), normalScale: new THREE.Vector2(1.4, 1.4), roughness: 0.7, metalness: 0 }); mm.castShadow = true; } else if (mm.isCamera || mm.isLight) mm.visible = false; }); fitHeight(m, 0.3, true); head = new THREE.Group(); head.add(m); head.visible = false; head.position.set(-0.18, 1.6, -0.36); head.rotation.y = Math.PI / 2; room.add(head); const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.0, 4, 12), std({ color: 0x050405, roughness: 1 })); body.position.set(0, -0.85, 0); head.add(body);
+    const eyeMat = std({ color: 0xff2a1a, emissive: 0xff3a20, emissiveIntensity: 6, roughness: 0.2 }); const eyesG = new THREE.Group(); head.add(eyesG); [-0.033, 0.033].forEach(dx => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.0085, 10, 8), eyeMat); e.position.set(dx, 0.035, 0.088); eyesG.add(e); }); const eyeGlow = new THREE.PointLight(0xff2a1a, 0.6, 0.9, 2); eyeGlow.position.set(0, 0.035, 0.13); eyesG.add(eyeGlow); head.userData.eyes = eyesG; head.userData.eyeMat = eyeMat; const shoulders = new THREE.Mesh(BOX(0.52, 0.12, 0.26), std({ color: 0x050405, roughness: 1 })); shoulders.position.set(0, -0.3, 0); head.add(shoulders); reg('cabin', m); const under = new THREE.PointLight(0xff4a2a, 0, 1.4, 2); under.position.set(0, -0.38, 0.16); head.add(under); head.userData.under = under; }
   // the Chairman portrait comes alive (animated face)
   let face = null, faceMixer = null;
   if (gFace) { const m = gFace.scene; m.traverse(mm => { if (mm.isMesh) { mm.frustumCulled = false; if (mm.material) { mm.material.roughness = 0.6; mm.material.color.set(0x8a6a56); } } }); fitHeight(m, 0.52, true); face = new THREE.Group(); face.add(m); face.visible = false; face.position.set(XR - 0.3, 2.02, -12.6); face.rotation.y = -Math.PI / 2; scene.add(face); faceMixer = new THREE.AnimationMixer(m); gFace.animations.forEach(cl => { const a = faceMixer.clipAction(cl); a.play(); }); mixers.push(faceMixer); reg('portrait', m); }
   // coffee mug for ghost #2
+  const sweets = new THREE.Mesh(BOX(0.24, 0.09, 0.17), std({ map: TX.sweetsBox(), roughness: 0.8 })); sweets.visible = false; scene.add(sweets);
   let mug = null; if (gMug) { mug = new THREE.Group(); const mm = gMug.scene; fitHeight(mm, 0.11); mug.add(mm); mug.visible = false; scene.add(mug); const steam = new THREE.Sprite(new THREE.SpriteMaterial({ map: loadTex('assets/tex/smoke.png', false), transparent: true, opacity: 0.35, depthWrite: false, color: 0xffffff })); steam.scale.set(0.25, 0.35, 1); steam.position.y = 0.25; mug.add(steam); mug.userData.steam = steam; anim.push((dt, t) => { if (mug.visible) { steam.position.y = 0.2 + (t % 2) * 0.12; steam.material.opacity = 0.35 * (1 - (t % 2) / 2); } }); }
 
+  await status('letting the rain in…', 0.9);
   // ---------------- anomalies ----------------
   const APPLY = {
     clock_back: () => { flags.clockDir = -22; },
@@ -353,63 +375,99 @@ export async function buildScene(renderer, opts) {
     portrait_mgr: () => { por.material.map = porTexM; por.material.needsUpdate = true; if (face) face.visible = true; porLight.color.set(0xffc0a0); porLight.intensity *= 1.4; },
     notice_goku: () => { notice.material.map = TX.noticeBoard(true); notice.material.needsUpdate = true; },
     npa_goku: () => { npa.material.map = npaTexG; npa.material.needsUpdate = true; },
-    cabin_eyes: () => { doorPivot.rotation.y = 0.62; cabinRed.intensity = 2.2; if (head) { head.visible = true; head.userData.under.intensity = 1.8; } },
+    cabin_eyes: () => { doorPivot.rotation.y = 0.5; cabinRed.intensity = 1.6; if (head) { head.visible = true; head.userData.under.intensity = 1.2; } },
     cabin_shoes: () => { shoes.visible = true; },
     bench_face: () => { [0, 1, 2].forEach(i => placeCustomer(i, 2.05, -20.5 - i * 1.0, 0, 'bench')); customers[3].root.visible = false; },
     bench_noface: () => { if (noface) noface.visible = true; },
     phone_glow: () => { phoneScr.material.emissiveIntensity = 2.5; phoneLight.intensity = 2.5; },
     desk_thaali: () => { thaali.visible = true; },
     cooler_red: () => { water.material.color.set(0x7a0000); water.material.opacity = 0.95; jarMat.color.set(0xc08a8a); },
-    cooler_ghost1: () => { placeGhost(0, X + 1.05, -19.1, Math.PI / 2 + 0.6, 'cooler'); },
+    ghost_shravya: () => { placeGhost(0, X + 1.05, -19.1, Math.PI / 2 + 0.6, 'cooler'); },
+    ghost_deepika: () => { placeGhost(1, X + 1.5, -21.0, -Math.PI / 2 + 0.3, 'counter'); customers[3] && (customers[3].root.visible = false); if (mug) { mug.visible = true; mug.position.set(X + 0.55, 1.08, -21.1); } },
+    ghost_aswathi: () => { placeGhost(2, 0.8, -21.6, Math.PI * 0.35, 'bench'); },
+    ghost_aarti: () => { placeGhost(4, XR - 1.0, -3.9, Math.PI / 2 + 0.5, 'atm'); cards.visible = true; },
+    bosi_inside: () => { placeCustomer(4, XR - 1.3, -1.3, Math.PI * 0.5, 'cctv'); marigold.visible = true; marigold.position.set(XR - 1.3, 0.3, -1.3); },
+    kailu_form: () => { placeCustomer(5, X + 1.5, -21.0, -Math.PI / 2, 'counter'); customers[3] && (customers[3].root.visible = false); leave.visible = true; leave.position.set(X + 1.0, 1.15, -21.0); leave.rotation.set(-0.5, Math.PI / 2, 0); },
     plant_grow: () => { leaves.scale.set(2.2, 4.6, 2.2); leaves.position.y = 0.3; plant.position.x = XR - 0.6; },
     vault_open: () => { vPivot.rotation.y = -1.4; vaultLight.intensity = 1.2; },
-    vault_ghost2: () => { placeGhost(1, X + 1.1, -11.3, Math.PI / 2 - 0.3, 'vault'); if (mug) { mug.visible = true; mug.position.set(X + 1.35, 0.95, -11.0); } },
+    ghost_laxmi: () => { placeGhost(3, X + 1.1, -11.3, Math.PI / 2 - 0.3, 'vault'); sweets.visible = true; sweets.position.set(X + 1.42, 1.02, -11.05); sweets.rotation.y = 0.4; },
     counter_open: () => { windows[1].shutter.visible = false; counterLight.intensity = 3; counterLight.position.z = windows[1].z; placeCustomer(2, X + 0.3, windows[1].z, Math.PI / 2 - 0.4, 'counter'); customers[2].root.scale.setScalar(0.92); },
     exit_entry: () => { exitSign.material.map = exitTexE; exitSign.material.emissiveMap = exitTexE; exitSign.material.emissive.set(0xff3b3b); exitSign.material.needsUpdate = true; exitLight.color.set(0xff3b3b); },
-    exit_dark: () => { mantapaLight.intensity = 0; exitGlassM.emissiveIntensity = 0; exitGlassM.opacity = 0.92; exitGlassM.color.set(0x05050a); rain.visible = false; garland.visible = false; },
-    mantapa_ghost3: () => { placeGhost(2, 0.3, Z1 - 1.5, 0.15, 'exit'); if (ghosts[2]) { ghosts[2].light.color.set(0xff6a3a); ghosts[2].light.intensity = 3; ghosts[2].m.traverse(mm => { if (mm.isMesh) { mm.material.emissiveIntensity = 1.4; mm.material.opacity = 0.6; } }); veil.visible = true; } mantapaLight.intensity = 22; },
+    exit_dark: () => { mantapaLight.intensity = 0; exitGlassM.emissiveIntensity = 0; exitGlassM.opacity = 0.92; exitGlassM.color.set(0x05050a); rain.visible = false; garland.visible = false; auto.visible = false; },
+    bride: () => { placeGhost(5, 0.3, Z1 - 1.5, 0.15, 'exit'); if (ghosts[5]) { ghosts[5].light.color.set(0xff6a3a); ghosts[5].light.intensity = 3; ghosts[5].m.traverse(mm => { if (mm.isMesh) { mm.material.emissiveIntensity = 1.4; mm.material.opacity = 0.6; } }); veil.visible = true; } mantapaLight.intensity = 22; },
     atm_cards: () => { cards.visible = true; },
     cctv_behind: () => { cctvScr.material.map = cctvTexB; cctvScr.material.emissiveMap = cctvTexB; cctvScr.material.needsUpdate = true; },
     fan_fast: () => { flags.fanFast = true; },
   };
   function reset() {
+    resetCreep(); if (face) face.position.x = XR - 0.3; if (noface) { noface.position.set(0.85, 0, -21.2); noface.rotation.set(0, Math.PI * 0.15, 0); } counterLight.color.set(0xfff2cc); exitLight.intensity = 1.6; if (head) { head.userData.eyeMat.emissiveIntensity = 6; head.userData.stare = false; }
     flags.clockDir = 1; flags.clockNine = false; flags.fanFast = false; tokenTex.userData.draw('NOW SERVING 0000');
     cal.material.map = calN; cal.material.needsUpdate = true; por.visible = true; por.material.map = porTexN; por.material.needsUpdate = true; if (face) face.visible = false; porLight.color.set(0xffe0b0); porLight.intensity = hq ? 7 : 5;
     notice.material.map = TX.noticeBoard(false); notice.material.needsUpdate = true; npa.material.map = npaTexN; npa.material.needsUpdate = true;
     doorPivot.rotation.y = 0; cabinRed.intensity = 0; if (head) { head.visible = false; head.userData.under.intensity = 0; } shoes.visible = false;
     customers.forEach(c => c.root.visible = false); placeCustomer(3, X + 1.4, -21.0, Math.PI / 2 + 0.2); customers[2] && customers[2].root.scale.setScalar(1); if (noface) noface.visible = false;
     phoneScr.material.emissiveIntensity = 0; phoneLight.intensity = 0; thaali.visible = false; water.material.color.set(0x3aa0ff); water.material.opacity = 0.55; jarMat.color.set(0xa8d8ff);
-    ghosts.forEach((g, i) => { g.root.visible = false; g.light.intensity = 0; g.light.color.set([0x9ec9ff, 0xc9b0ff, 0xffb09e][i]); g.m.traverse(mm => { if (mm.isMesh) { mm.material.emissiveIntensity = 0.7; mm.material.opacity = 0.42; } }); }); veil.visible = false; if (mug) mug.visible = false;
+    ghosts.forEach((g, i) => { g.root.visible = false; g.light.intensity = 0; g.light.color.set(GHOST_TINT[i]); g.m.traverse(mm => { if (mm.isMesh) { mm.material.emissiveIntensity = 0.7; mm.material.opacity = 0.42; } }); }); veil.visible = false; if (mug) mug.visible = false; sweets.visible = false; marigold.visible = false; leave.visible = false; auto.visible = true;
     leaves.scale.set(1, 1, 1); leaves.position.y = 0.55; plant.position.x = XR - 0.5; vPivot.rotation.y = 0; vaultLight.intensity = 0; windows[1].shutter.visible = true; counterLight.intensity = 0;
     exitSign.material.map = exitTexN; exitSign.material.emissiveMap = exitTexN; exitSign.material.emissive.set(0x43ff7a); exitSign.material.needsUpdate = true; exitLight.color.set(0x43ff7a);
     mantapaLight.intensity = 9; exitGlassM.emissiveIntensity = 0.06; exitGlassM.opacity = 0.18; exitGlassM.color.set(0xfff4e6); rain.visible = true; garland.visible = true; cards.visible = false;
     cctvScr.material.map = cctvTexN; cctvScr.material.emissiveMap = cctvTexN; cctvScr.material.needsUpdate = true;
   }
-  reset();
 
   // ---------------- per-frame ----------------
-  let flashT = 0, dipT = 0, dipAmt = 1, nextDip = 12 + Math.random() * 20, nextBolt = 8 + Math.random() * 14, elapsed = 0, headLook = 0;
-  const events = { onThunder: null, onDip: null };
+  let flashT = 0, dipT = 0, dipAmt = 1, nextDip = 12 + Math.random() * 20, nextBolt = 8 + Math.random() * 14, nextHorn = 6 + Math.random() * 10, elapsed = 0, headLook = 0;
+  const events = { onThunder: null, onDip: null, onHorn: null };
   const ray = new THREE.Raycaster(); ray.far = 14;
   function update(dt, t, cam) {
     elapsed += dt; anim.forEach(f => f(dt, t)); mixers.forEach(m => m.update(dt));
     // flicker + power dips
     nextDip -= dt; if (nextDip <= 0) { nextDip = 14 + Math.random() * 26; dipT = 0.3 + Math.random() * 0.6; events.onDip && events.onDip(dipT); }
     if (dipT > 0) { dipT -= dt; dipAmt = 0.25 + Math.random() * 0.2; } else dipAmt = 1;
-    lights.tubes.forEach(l => { const f = (l.flickery && Math.random() < 0.05) ? 0.1 + Math.random() * 0.5 : 1 - Math.random() * 0.05; l.light.intensity = l.base * f * dipAmt; l.tube.material.emissiveIntensity = 1.6 * f * dipAmt; });
+    lights.tubes.forEach(l => { if (l.dead) return; const f = (l.flickery && Math.random() < 0.07) ? 0.05 + Math.random() * 0.5 : 1 - Math.random() * 0.05; l.light.intensity = l.base * f * dipAmt; l.tube.material.emissiveIntensity = 1.6 * f * dipAmt; });
     // lightning
     nextBolt -= dt; if (nextBolt <= 0) { nextBolt = 10 + Math.random() * 22; flashT = 0.5; events.onThunder && events.onThunder(0.8 + Math.random() * 2); }
+    nextHorn -= dt; if (nextHorn <= 0) { nextHorn = 18 + Math.random() * 30; if (auto.visible && events.onHorn) events.onHorn(); }
     if (flashT > 0) { flashT -= dt; const k = flashT > 0.35 ? 1 : (flashT > 0.2 ? 0 : (flashT > 0.1 ? 0.6 : 0)); lightning.intensity = k * 2.2; exitGlassM.emissiveIntensity = (mantapaLight.intensity > 0 ? 0.06 : 0) + k * 1.2; } else { lightning.intensity = 0; }
     // the head slowly turns to look at you
-    if (head && head.visible && cam) { const target = Math.atan2(cam.position.x - (X - 0.18), cam.position.z + 5.06); headLook += ((target - Math.PI / 2) * 0.35 - headLook) * dt * 0.4; head.rotation.y = Math.PI / 2 + headLook; head.rotation.x = Math.sin(t * 0.4) * 0.02; }
+    if (head && head.visible && cam) { const target = Math.atan2(cam.position.x - (X - 0.18), cam.position.z + 5.06); headLook += ((target - Math.PI / 2) * (head.userData.stare ? 1 : 0.35) - headLook) * dt * (head.userData.stare ? 2.5 : 0.4); head.rotation.y = Math.PI / 2 + headLook; head.rotation.x = Math.sin(t * 0.4) * 0.02; }
     // ghosts: float + breathe
     ghosts.forEach((g, i) => { if (g.root.visible) { g.root.position.y = 0.01 + Math.sin(t * 0.9 + i) * 0.02; g.light.intensity = 1.4 + Math.sin(t * 2.1 + i) * 0.4; } });
   }
+  // escalation when the player has stared at the anomaly long enough
+  function react(id, cam) {
+    if (id === 'cabin_eyes') { doorPivot.rotation.y = 0.95; cabinRed.intensity = 3.5; if (head) { head.userData.under.intensity = 2.5; head.userData.eyeMat.emissiveIntensity = 10; head.userData.stare = true; } return 'creak'; }
+    if (id === 'portrait_mgr') { if (face) face.position.x = XR - 0.5; porLight.intensity *= 2; return 'laugh'; }
+    if (id === 'bench_face') { customers.slice(0, 3).forEach(c => { c.root.position.x -= 0.7; }); return 'floor'; }
+    if (id === 'bench_noface') { if (noface) { noface.position.z += 0.8; noface.lookAt(cam.position.x, 0, cam.position.z); } return 'breath'; }
+    if (id === 'vault_open') { vPivot.rotation.y = -2.4; vaultLight.intensity = 4; return 'vault'; }
+    if (id === 'token_goku') { tokenTex.userData.draw('GOKU  GOKU  GOKU'); return null; }
+    if (id === 'phone_glow') { phoneLight.intensity = 6; return 'ring'; }
+    if (id === 'counter_open') { customers[2] && customers[2].root.lookAt(cam.position.x, 0, cam.position.z); counterLight.intensity = 6; counterLight.color.set(0xff6a4a); return 'shutter'; }
+    if (id === 'exit_entry' || id === 'exit_dark') { exitLight.intensity = 6; return null; }
+    if (id === 'bosi_inside' && customers[4] && customers[4].root.visible) { customers[4].root.lookAt(cam.position.x, 0, cam.position.z); return 'horn'; }
+    const gh = ghosts.find(g => g.root.visible); if (gh) { gh.root.lookAt(cam.position.x, 0, cam.position.z); gh.light.intensity = 4; gh.m.traverse(mm => { if (mm.isMesh) mm.material.emissiveIntensity = 1.6; }); return 'breath'; }
+    return null;
+  }
+  // weeping-angel: a seen ghost creeps closer whenever she is out of view (not the bride behind the glass)
+  const creepState = { outT: 0, inT: 0, seen: false, moves: 0 };
+  function creep(dt, cam) {
+    const gh = ghosts.find((g, i) => g.root.visible && i < 5); if (!gh) return false;
+    const dx = gh.root.position.x - cam.position.x, dz = gh.root.position.z - cam.position.z; const dist = Math.hypot(dx, dz);
+    const fx = -Math.sin(cam.rotation.y), fz = -Math.cos(cam.rotation.y); const inView = (dx * fx + dz * fz) / (dist + 1e-6) > 0.75;
+    if (inView) { creepState.inT += dt; creepState.outT = 0; if (creepState.inT > 0.6) creepState.seen = true; return false; }
+    creepState.inT = 0; if (!creepState.seen) return false; creepState.outT += dt;
+    if (creepState.outT > 0.9 && creepState.moves < 4 && dist > 2.6) { creepState.outT = 0; creepState.moves++; const step = Math.min(1.3, dist - 2.3); gh.root.position.x -= dx / dist * step; gh.root.position.z -= dz / dist * step; gh.root.position.x = THREE.MathUtils.clamp(gh.root.position.x, X + 0.5, XR - 0.5); gh.root.lookAt(cam.position.x, 0, cam.position.z); return true; }
+    return false;
+  }
+  function resetCreep() { creepState.outT = 0; creepState.inT = 0; creepState.seen = false; creepState.moves = 0; }
+  const centre = new THREE.Vector2(0, 0);
+  function gazeId(cam) { ray.setFromCamera(centre, cam); const h = ray.intersectObjects(hit, false)[0]; return h ? h.object.userData.id : null; }
   function raycastProp(ndc, cam) { ray.setFromCamera(ndc, cam); const h = ray.intersectObjects(hit, false)[0]; return h ? { id: h.object.userData.id, point: h.point, dist: h.distance } : null; }
   // walking collision: keep inside the hall and out of furniture
   const solids = [ { x: [XR - 1.4, XR], z: [-10.7, -8.4] }, { x: [XR - 1.95, XR], z: [-2.0, -0.8] }, { x: [XR - 1.5, XR], z: [-4.8, -3.0] }, { x: [X, X + 1.0], z: [-24.6, -20.2] }, { x: [0.95, 1.8], z: [-22.6, -20.6] }, { x: [X, X + 0.8], z: [-19.5, -18.7] }, { x: [XR - 0.9, XR], z: [-24.6, -23.9] } ];
   function collide(p) { p.x = THREE.MathUtils.clamp(p.x, X + 0.45, XR - 0.45); p.z = THREE.MathUtils.clamp(p.z, Z1 + 0.6, Z0 - 0.6); for (const s of solids) { if (p.x > s.x[0] && p.x < s.x[1] && p.z > s.z[0] && p.z < s.z[1]) { const dx = Math.min(p.x - s.x[0], s.x[1] - p.x), dz = Math.min(p.z - s.z[0], s.z[1] - p.z); if (dx < dz) p.x = (p.x - s.x[0] < s.x[1] - p.x) ? s.x[0] - 0.01 : s.x[1] + 0.01; else p.z = (p.z - s.z[0] < s.z[1] - p.z) ? s.z[0] - 0.01 : s.z[1] + 0.01; } } return p; }
-  const propPos = { cabin: new THREE.Vector3(X, 1.5, -4.7), desk: new THREE.Vector3(XR - 1, 0.9, -9.4), cooler: new THREE.Vector3(X + 0.5, 1, -19), vault: new THREE.Vector3(X + 0.5, 1, -10.5), exit: new THREE.Vector3(0, 1.5, Z1), counter: new THREE.Vector3(X + 0.5, 1.5, -22.3), fan: new THREE.Vector3(0, 3, -4) };
+  const propPos = { cabin: new THREE.Vector3(X, 1.5, -4.7), desk: new THREE.Vector3(XR - 1, 0.9, -9.4), cooler: new THREE.Vector3(X + 0.5, 1, -19), vault: new THREE.Vector3(X + 0.5, 1, -10.5), exit: new THREE.Vector3(0, 1.5, Z1), counter: new THREE.Vector3(X + 0.5, 1.5, -22.3), fan: new THREE.Vector3(0, 3, -4), bench: new THREE.Vector3(1, 1, -21.6), atm: new THREE.Vector3(XR - 1, 1, -3.9), cctv: new THREE.Vector3(XR - 1, 1, -1.3) };
 
-  return { scene, camera, update, raycastProp, collide, APPLY, reset, events, propPos, setToken: (s) => tokenTex.userData.draw(s), reflector, debug: { customers, ghosts, head, face, noface } };
+  reset();
+  return { scene, camera, update, raycastProp, gazeId, react, creep, collide, APPLY, reset, events, propPos, setToken: (s) => tokenTex.userData.draw(s), reflector, debug: { customers, ghosts, head, face, noface } };
 }
