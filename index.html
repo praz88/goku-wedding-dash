@@ -34,6 +34,15 @@
   .char.sel { border-color:var(--blood); background:#2a0a14; box-shadow:0 0 14px rgba(255,0,40,.5); }
   #perk { min-height:34px; color:#9be7ff; font-size:13px; }
   .hs { color:#9be7ff; font-size:13px; }
+  .lb { width:100%; max-width:360px; font-size:13px; margin:6px 0; }
+  .lb table { width:100%; border-collapse:collapse; }
+  .lb td { padding:3px 6px; border-bottom:1px solid #2a0a20; text-align:left; }
+  .lb td:first-child { color:var(--gold); width:28px; } .lb td:last-child { text-align:right; color:#9be7ff; }
+  .lb .me td { background:rgba(193,18,31,.25); }
+  .lb h4 { color:var(--gold); letter-spacing:2px; font-size:12px; margin-bottom:4px; }
+  .submit { display:flex; gap:6px; align-items:center; margin-top:6px; }
+  .submit.hidden { display:none; }
+  .submit input { flex:1; font-family:inherit; font-size:15px; padding:9px 10px; border-radius:10px; border:1px solid #5a1a3a; background:#140816; color:#fff; min-width:0; }
 </style>
 </head>
 <body>
@@ -55,6 +64,7 @@
     </div>
     <p class="small">Swipe ← → to change lane · swipe ↑ jump · swipe ↓ duck (or arrow keys)</p>
     <p class="hs" id="hs"></p>
+    <div id="lbStart" class="lb"></div>
     <button id="play">Enter the Branch</button>
   </div>
 
@@ -71,6 +81,11 @@
     <p id="overMsg"></p>
     <p id="overScore"></p>
     <p class="hs" id="overHs"></p>
+    <div id="submit" class="submit hidden">
+      <input id="pname" maxlength="16" placeholder="Your name for the leaderboard" autocomplete="off">
+      <button id="send" style="margin-top:0;font-size:15px;padding:9px 16px">Post score</button>
+    </div>
+    <div id="lbOver" class="lb"></div>
     <button id="again">Run Again</button>
     <button id="menu" style="background:#3a1030;box-shadow:0 5px 0 #1a0010">Change Runner</button>
   </div>
@@ -88,11 +103,11 @@
   // Playable wedding party. All invented. Add yours!
   const CHARS = [
     { id:'goku', e:'🤵🏽', name:'Goku', role:'The Groom', perk:'Balanced. +10% score. Has not slept since Thursday.', lives:3, speed:1, scoreX:1.1 },
-    { id:'amma', e:'👩🏽', name:'Amma', role:'Mother of Groom', perk:'4 lives. Every sweet you grab, she asks if you ate.', lives:4, speed:1, scoreX:1, sweetX:1 },
-    { id:'appa', e:'👨🏽‍🦳', name:'Appa', role:'Father of Groom', perk:'Hard of hearing: ignores the first 2 calls each level.', lives:3, speed:0.95, scoreX:1, ignore:2 },
+    { id:'shivanna', e:'💂🏽', name:'Shivanna', role:'Bank Security', perk:'4 lives. Has seen every ghost. Unimpressed by all of them.', lives:4, speed:0.97, scoreX:1 },
+    { id:'manju', e:'☕', name:'Manju', role:'Chai Guy', perk:'On tea break: ignores the first 2 calls each level.', lives:3, speed:1, scoreX:1, ignore:2 },
     { id:'purohit', e:'🧙🏽', name:'Shastri', role:'The Purohit', perk:'Time runs 12% slower. He has done 4,000 weddings.', lives:3, speed:0.88, scoreX:1 },
-    { id:'kitty', e:'🕺🏽', name:'Kitty', role:'Best Friend', perk:'Fast & reckless: 15% faster, 1.5× score, 2 lives.', lives:2, speed:1.15, scoreX:1.5 },
-    { id:'chikkamma', e:'👵🏽', name:'Chikkamma', role:'The Aunt', perk:'Sweets worth 2×. Asks every zombie "when is YOUR marriage?"', lives:3, speed:1, scoreX:1, sweetX:2 },
+    { id:'bosi', e:'🕺🏽', name:'Bosi', role:'Best Friend', perk:'Fast & reckless: 15% faster, 1.5× score, 2 lives. Has a plan. The plan is bad.', lives:2, speed:1.15, scoreX:1.5 },
+    { id:'kailu', e:'🧑🏽‍🎤', name:'Kailu', role:'Best Friend', perk:'Sweets worth 2×, eats everything at the buffet. Jumps 20% higher out of sheer confidence.', lives:3, speed:1, scoreX:1, sweetX:2, jumpX:1.2 },
     { id:'ranga', e:'🧑🏽‍🔧', name:'Ranga', role:'Bank Peon', perk:'Do Not Disturb lasts 9s. He knows where the fuse box is.', lives:3, speed:1, scoreX:1, dnd:9 },
     { id:'anna', e:'🛺', name:'Auto Anna', role:'The Driver', perk:'Zombies and ghost autos can\'t hurt him. Meter is extra.', lives:3, speed:1.05, scoreX:1, noEnemy:true },
   ];
@@ -167,6 +182,25 @@
   function setHS(id,s){ try{ const h=getHS(); if(!h[id]||s>h[id]){ h[id]=s; localStorage.setItem('gwd_hs',JSON.stringify(h)); return true; } }catch(e){} return false; }
   function hsText(){ const h=getHS(); const best=Object.entries(h).sort((a,b)=>b[1]-a[1])[0]; return best? 'Best: '+best[1]+' ('+CHARS.find(c=>c.id===best[0]).name+')' : ''; }
 
+  // ---------- ONLINE LEADERBOARD (works when served by server.js; silently off elsewhere) ----------
+  const API = location.protocol.startsWith('http') ? '/api/scores' : null;
+  let lastPosted = null;
+  async function loadLB(){ if(!API) return null; try{ const r=await fetch(API,{cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
+  function renderLB(el,rows,meId){ if(!rows){ el.innerHTML=''; return; } if(!rows.length){ el.innerHTML='<h4>LEADERBOARD</h4><p class="small">No scores yet. Be the first to survive.</p>'; return; }
+    el.innerHTML='<h4>LEADERBOARD · TOP 10</h4><table>'+rows.slice(0,10).map((r,i)=>`<tr class="${r.id===meId?'me':''}"><td>${i+1}</td><td>${esc(r.name)} ${(CHARS.find(c=>c.id===r.char)||{}).e||''}</td><td>${r.score}</td></tr>`).join('')+'</table>'; }
+  function esc(t){ return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  async function refreshLB(){ const rows=await loadLB(); renderLB($('lbStart'),rows,lastPosted); renderLB($('lbOver'),rows,lastPosted); }
+  async function postScore(){ if(!API) return; const name=$('pname').value.trim(); if(!name) { $('pname').focus(); return; }
+    try{ localStorage.setItem('gwd_name',name); }catch(e){}
+    $('send').disabled=true; $('send').textContent='Posting…';
+    try{ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,char:CH.id,score:S.score,level:S.i,won:!!S.won})}); const j=await r.json(); lastPosted=j.id||null; $('submit').classList.add('hidden'); sfx.thaali(); }
+    catch(e){ $('send').textContent='Failed, retry'; $('send').disabled=false; return; }
+    refreshLB();
+  }
+  $('send').onclick=postScore; $('pname').addEventListener('keydown',e=>{ if(e.key==='Enter') postScore(); });
+  try{ $('pname').value=localStorage.getItem('gwd_name')||''; }catch(e){}
+  refreshLB();
+
   // ---------- ROSTER UI ----------
   let CH = CHARS[0];
   const roster=$('roster');
@@ -220,15 +254,14 @@
         if(o.type==='call'){
           const line=opt.kn?o.c.kn:o.c.en;
           if(S.shield>0){ addScore(5); toast(opt.kn?'📵 ಕಟ್ ಮಾಡಿದೆ. ಶಾಂತಿ.':'📵 Declined. Peace.'); sfx.pick(); }
-          else if(S.ignore>0){ S.ignore--; toast(opt.kn?'🙉 "ಏನು? ಕೇಳಿಸ್ತಿಲ್ಲ."':'🙉 "What? Can\'t hear. Network."', CH.name); sfx.pick(); }
+          else if(S.ignore>0){ S.ignore--; toast(opt.kn?'🙉 "ಚಾಯ್ ಬ್ರೇಕ್. ಕೇಳಿಸ್ತಿಲ್ಲ."':'🙉 "Tea break. Can\'t hear. Network."', CH.name); sfx.pick(); }
           else { hurt(line,o.c.who); say(line,opt.kn?'kn-IN':'en-IN'); }
         } else if(o.type==='enemy'){
           if(S.shield>0||CH.noEnemy){ addScore(5); sfx.pick(); if(CH.noEnemy) toast(opt.kn?'🛺 "ಮೀಟರ್ ಮೇಲೆ 20 ಎಕ್ಸ್ಟ್ರಾ."':'🛺 "Meter plus 20 extra."', 'Auto Anna'); }
-          else if(CH.id==='chikkamma'){ hurt(opt.kn?'"ನಿನ್ ಮದುವೆ ಯಾವಾಗ?" — ಜಾಂಬಿ ಓಡಿಹೋಯ್ತು, ಆದ್ರೆ ಕಚ್ಚಿತು':'"When is YOUR marriage?" — zombie fled, but bit first','Chikkamma'); }
           else hurt(opt.kn?'"ಸರ್… ಮ್ಯಾನೇಜರ್ ಅನ್ನು ಭೇಟಿ ಆಗ್ಬೇಕು… ಒಂದೇ ಸಹಿ ಸರ್…"':'"sir… I want to meet the MANAGER… one signature sir…"','Zombie Customer');
         } else if(o.type==='low'||o.type==='high'){
           if(S.shield>0){ addScore(2); } else hurt(o.type==='low'?(opt.kn?'💥 ಜಂಪ್ ಮಾಡ್ಬೇಕಿತ್ತು!':'💥 Should have jumped!'):(opt.kn?'💥 ಬಗ್ಗಬೇಕಿತ್ತು!':'💥 Should have ducked!'),'');
-        } else if(o.type==='sweet'){ addScore(10*(CH.sweetX||1)); S.combo++; sfx.pick(); if(CH.id==='amma'&&Math.random()<0.15) toast(opt.kn?'"ಊಟ ಮಾಡಿದ್ಯಾ?"':'"Did you eat?"','Amma'); }
+        } else if(o.type==='sweet'){ addScore(10*(CH.sweetX||1)); S.combo++; sfx.pick(); }
         else if(o.type==='thaali'){ addScore(50); toast(opt.kn?'📿 ತಾಳಿ ಸಿಕ್ತು!':'📿 Thaali piece secured!'); sfx.thaali(); }
         else { S.shield=CH.dnd||5; toast(opt.kn?`🧘 Do Not Disturb ON (${S.shield}s)`:`🧘 Do Not Disturb: ON (${S.shield}s)`); sfx.shield(); }
       }
@@ -260,7 +293,7 @@
       else { ctx.font='36px serif'; ctx.fillText('🧘',x,o.y); }
     }
     // player
-    const jh = S.jumpT>0 ? Math.sin(Math.min(1,S.jumpT/0.55)*Math.PI)*70 : 0;
+    const jh = S.jumpT>0 ? Math.sin(Math.min(1,S.jumpT/(0.55*(CH.jumpX||1)))*Math.PI)*70 : 0;
     const py = PY - jh;
     if(S.shield>0){ ctx.strokeStyle='rgba(120,220,255,.85)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(S.x,py,46,0,Math.PI*2); ctx.stroke(); }
     if(jh>0){ ctx.fillStyle='rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(S.x,PY+30,26-jh/5,8,0,0,Math.PI*2); ctx.fill(); }
@@ -289,8 +322,9 @@
   function go(){ $('level').classList.add('hidden'); audio(); startDrone(S.i); last=0; sfx.thunder(); raf=requestAnimationFrame(loop); }
   function nextLevel(){ cancelAnimationFrame(raf); S.over=true; stopDrone(); if(S.i>=LEVELS.length-1) end(true); else { sfx.win(); showLevel(S.i+1); } }
   function end(won){
-    S.over=true; cancelAnimationFrame(raf); stopDrone(); won?sfx.win():sfx.laugh();
+    S.over=true; S.won=won; cancelAnimationFrame(raf); stopDrone(); won?sfx.win():sfx.laugh();
     const isNew=setHS(CH.id,S.score);
+    if(API&&S.score>0){ $('submit').classList.remove('hidden'); $('send').disabled=false; $('send').textContent='Post score'; }
     $('overTitle').textContent=won?'🎉 Thaali tied. Phone dead. '+CH.name+' alive.':'📱 '+CH.name+' picked up the call…';
     $('overMsg').textContent=won?'The Manager dissolved into a cloud of unsigned forms. The purohit said "late by 2 seconds but ok". Branch can wait till Monday. Congrats, Goku!'
       :'"Sir just 2 minutes" became 2 hours. The muhurtha passed. The purohit left. The zombie customers are still in queue. Try again.';
@@ -307,7 +341,7 @@
   // ---------- CONTROLS ----------
   function act(dir){ if(!S||S.over) return;
     if(dir==='L') S.lane=Math.max(0,S.lane-1); else if(dir==='R') S.lane=Math.min(LANES-1,S.lane+1);
-    else if(dir==='U'){ if(S.jumpT<=0){ S.jumpT=0.55; S.duckT=0; sfx.jump(); } }
+    else if(dir==='U'){ if(S.jumpT<=0){ S.jumpT=0.55*(CH.jumpX||1); S.duckT=0; sfx.jump(); } }
     else if(dir==='D'){ S.duckT=0.5; S.jumpT=0; sfx.duck(); } }
   window.addEventListener('keydown',e=>{ const k=e.key; if(k==='ArrowLeft'||k==='a') act('L'); if(k==='ArrowRight'||k==='d') act('R'); if(k==='ArrowUp'||k==='w'||k===' ') act('U'); if(k==='ArrowDown'||k==='s') act('D'); });
   let sx=0,sy=0,st=0;

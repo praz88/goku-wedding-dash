@@ -10,11 +10,13 @@ Three nights. Three levels. One muhurtha.
 - **Night 2 — Silk Board:** possessed phones, ghost autos, no signal.
 - **Night 3 — The Mantapa:** the Branch Manager (final form) hurls calls at you until the thaali is tied.
 
-Features: ಕನ್ನಡ call lines, synth sound effects (Web Audio), spoken calls via the browser's speech synthesis, no build step, no dependencies.
+Features: 8 playable runners with different perks (Goku, Bosi, Kailu, Shivanna the guard, Manju the chai guy, Shastri the purohit, Ranga the peon, Auto Anna), jump/duck obstacles, 21 callers, ಕನ್ನಡ call lines, synth sound effects (Web Audio), spoken calls via speech synthesis, and an online leaderboard. No build step, no npm dependencies.
 
 ## Play
 
-Open `index.html` in a browser. That's it. Tap left/right or use ← →.
+Online: **https://goku-wedding-dash.fly.dev**
+
+Local: `node server.js` then open http://localhost:8080 (leaderboard saves to `scores.json`). Or just open `index.html` — everything works except the shared leaderboard.
 
 ## Deploy (Fly.io)
 
@@ -33,7 +35,7 @@ PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Easy wins:
 - New call lines (add to `CALLS` in `index.html`, English + Kannada)
 - New levels (add to `LEVELS` — each is a plain object)
 - More languages (Tamil, Telugu, Hindi…)
-- Better monsters, a leaderboard, music, a mobile swipe gesture
+- Better monsters, music, a boss per level, a weekly leaderboard reset
 
 ## License
 
