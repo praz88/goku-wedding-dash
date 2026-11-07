@@ -10,7 +10,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Ensure leaderboard volume exists
-        run: flyctl volumes list -a goku-wedding-dash --json | grep -q '"name": *"data"' || flyctl volumes create data -a goku-wedding-dash -r sin -s 1 -n 1 -y
+        run: |
+          if ! flyctl volumes list -a goku-wedding-dash | grep -q ' data '; then
+            flyctl volumes create data -a goku-wedding-dash -r sin -s 1 -n 1 -y
+          fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - run: flyctl deploy --remote-only --ha=false
