@@ -1,41 +1,45 @@
 # 👹 Goku's Wedding Dash: Weekend Nightmare
 
-A horror-comedy lane runner about a bank manager trying to reach his own
-South Indian wedding while his branch manager and customers refuse to
-acknowledge the existence of weekends.
+A slow horror-comedy browser game about a bank manager, a wedding on Sunday,
+and a phone that does not know what a weekend is.
 
-Three nights. Three levels. One muhurtha.
+**Play: https://goku-wedding-dash.fly.dev**
 
-- **Night 1 — The Branch After Hours:** zombie customers, bleeding ATM.
-- **Night 2 — Silk Board:** possessed phones, ghost autos, no signal.
-- **Night 3 — The Mantapa:** the Branch Manager (final form) hurls calls at you until the thaali is tied.
+## How it plays
 
-Features: 8 playable runners with different perks (Goku, Bosi, Kailu, Shivanna the guard, Manju the chai guy, Shastri the purohit, Ranga the peon, Auto Anna), jump/duck obstacles, 21 callers, ಕನ್ನಡ call lines, synth sound effects (Web Audio), spoken calls via speech synthesis, and an online leaderboard. No build step, no npm dependencies.
+It's an *anomaly hunt* (think *Exit 8*, *Escape Work*): you walk the same
+branch corridor from Friday night to Sunday's muhurtha. Tap anything to look
+closer — the clock, the Manager's cabin, the NPA board, the customer chairs,
+the water cooler. That's where the story is.
 
-## Play
+- If **anything is wrong**, turn back.
+- If it's **a normal night**, go on.
+- Eight right calls → the mantapa. One wrong call → Friday, 11:58 PM, again.
 
-Online: **https://goku-wedding-dash.fly.dev**
+Story cards between walks introduce the Manager, the customers, and the three
+who got away. **Roast mode** lets your group type their own names on their
+own phones; those names never leave the device.
 
-Local: `node server.js` then open http://localhost:8080 (leaderboard saves to `scores.json`). Or just open `index.html` — everything works except the shared leaderboard.
+Features: 21 anomalies, typewriter story cards (optionally read aloud),
+synth ambience (Web Audio), online leaderboard. One HTML file, zero npm deps.
+
+## Run locally
+
+```sh
+node server.js        # http://localhost:8080, leaderboard saved to scores.json
+```
+Or just open `index.html` — everything works except the shared leaderboard.
 
 ## Deploy (Fly.io)
 
-```sh
-fly launch --copy-config --yes   # first time
-fly deploy                        # afterwards
-```
-
-Pushes to `main` auto-deploy via GitHub Actions if the repo has a
-`FLY_API_TOKEN` secret (`fly tokens create deploy -x 999999h`).
+Pushes to `main` auto-deploy via GitHub Actions (`FLY_API_TOKEN` secret).
+The leaderboard lives on a 1 GB Fly volume named `data`.
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Easy wins:
-
-- New call lines (add to `CALLS` in `index.html`, English + Kannada)
-- New levels (add to `LEVELS` — each is a plain object)
-- More languages (Tamil, Telugu, Hindi…)
-- Better monsters, music, a boss per level, a weekly leaderboard reset
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The easiest, most fun
+contribution is **a new anomaly**: one entry in `ANOMS` plus a draw branch in
+the prop it belongs to. Keep it creepy-funny, keep it PG, no real people.
 
 ## License
 
